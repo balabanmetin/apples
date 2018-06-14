@@ -1,5 +1,6 @@
 import dendropy as dy
 import sys
+import pandas as pd
 
 
 def dfs_S_values(edge, downstream):
@@ -102,23 +103,48 @@ def ols_error(edge):
     return A + B + C + D + E + F
 
 
-def best_ols_placement(tree):
+def placement(tree, name, minimum_evolution):
+    min = 999999999999
+    placed_edge = None
     for e in tree.postorder_edge_iter():
         if e.head_node == tree.seed_node:
             continue
-        err = ols_error(e)
-        print(err)
+        if minimum_evolution:
+            err = e.x_1
+        else:
+            err = ols_error(e)
+        if err < min:
+            min = err
+            placed_edge = e
+    tailn = placed_edge.tail_node
+    headn = placed_edge.head_node
+    tailn.remove_child(headn)
+    nn = dy.Node()
+    nn.add_child(headn)
+    qry = dy.Node(taxon=dy.Taxon(name))
+    nn.add_child(qry)
+    qry.edge_length = placed_edge.x_1
+    tailn.add_child(nn)
+    if placed_edge.head_node in list(master_edge.head_node.ancestor_iter()) or master_edge == placed_edge:
+        nn.edge_length = placed_edge.length - max(placed_edge.x_2,0)
+        headn.edge_length = max(placed_edge.x_2,0)
+    else:
+        nn.edge_length = max(placed_edge.x_2,0)
+        headn.edge_length = placed_edge.length - max(placed_edge.x_2,0)
+    print(placed_edge.x_1, placed_edge.x_2)
 
 
 if __name__ == "__main__":
     fname = sys.argv[1]
+    df = pd.read_csv(sys.argv[2], sep="\s+", names = ["taxa", "dist"] , header = None)
+    obs_dist = pd.Series(df.dist.values,index=df.taxa).to_dict()
     f = open(fname)
-    tree = dy.Tree.get_from_string(f.readline(), schema='newick', rooting="force-unrooted")
-    obs_dist = {'A': 0.3, 'B': 0.2, 'C': 1.0, 'D': 1.1}
+    tree = dy.Tree.get_from_string(f.readline(), schema='newick')
     Dsum = sum(obs_dist.values())
     n = len(obs_dist)
     master_edge = next(tree.postorder_edge_iter())
     dfs_S_values(master_edge, master_edge.tail_node)
     dfs_R_values(master_edge, None, master_edge.head_node, master_edge.tail_node)
     ols_parameters_per_edge(tree)
-    best_ols_placement(tree)
+    placement(tree, sys.argv[2].split("/")[-1].split(".")[0], 1)
+    tree.write(file = sys.stdout, schema = "newick")
