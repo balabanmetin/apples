@@ -16,23 +16,19 @@ def dfs_S_values(edge, downstream):
     else:
         inc = list(downstream.incident_edges())
         inc = filter(lambda x: x.length != None and x != edge, inc)
-        d1, d2 = inc
-        d1tips = [d1.head_node, d1.tail_node]
-        d1tips.remove(downstream)
-        d2tips = [d2.head_node, d2.tail_node]
-        d2tips.remove(downstream)
-        if len(d1tips) == 0 or len(d2tips) == 0:
-            print("error")
-        dfs_S_values(d1, d1tips[0])
-        dfs_S_values(d2, d2tips[0])
-        edge.S = d1.S + d2.S
-        edge.Sd = d1.S * d1.length + d2.S * d2.length + d1.Sd + d2.Sd
-        edge.Sd2 = d1.S * d1.length * d1.length + d2.S * d2.length * d2.length + d1.Sd2 + d2.Sd2 \
-                   + 2 * d1.length * d1.Sd + 2 * d2.length * d2.Sd
-        edge.SD = d1.SD + d2.SD
-        edge.SD2 = d1.SD2 + d2.SD2
-        edge.SDd = d1.length * d1.SD + d2.length * d2.SD + d1.SDd + d2.SDd
-
+        edge.S, edge.Sd, edge.Sd2, edge.SD, edge.SD2, edge.SDd = 6*[0]
+        for d1  in inc:
+            d1tips = [d1.head_node, d1.tail_node]
+            d1tips.remove(downstream)
+            if len(d1tips) == 0:
+                print("error")
+            dfs_S_values(d1, d1tips[0])
+            edge.S += d1.S
+            edge.Sd += d1.S * d1.length + d1.Sd
+            edge.Sd2 += d1.S * d1.length * d1.length + d1.Sd2 + 2 * d1.length * d1.Sd
+            edge.SD += d1.SD
+            edge.SD2 += d1.SD2
+            edge.SDd += d1.length * d1.SD + d1.SDd
 
 def dfs_R_values(edge, u1, upstream, downstream):
     if upstream.is_leaf():
@@ -44,27 +40,30 @@ def dfs_R_values(edge, u1, upstream, downstream):
         edge.RDd = 0
 
     else:
+        edge.R = u1.R
+        edge.Rd = u1.R * u1.length + u1.Rd
+        edge.Rd2 = u1.R * u1.length * u1.length + u1.Rd2 + 2 * u1.length * u1.Rd
+        edge.RD = u1.RD
+        edge.RD2 = u1.RD2
+        edge.RDd = u1.RD * u1.length + u1.RDd
+
         inc = list(upstream.incident_edges())
         u2 = list(filter(lambda x: x.length != None and x != edge and x != u1, inc))
-        assert len(u2) is 1
-        edge.R = u1.R + u2[0].S
-        edge.Rd = u2[0].S * u2[0].length + u1.R * u1.length + u1.Rd + u2[0].Sd
-        edge.Rd2 = u2[0].S * u2[0].length * u2[0].length + u1.R * u1.length * u1.length + u1.Rd2 + u2[0].Sd2 \
-                   + 2 * u2[0].length * u2[0].Sd + 2 * u1.length * u1.Rd
-        edge.RD = u1.RD + u2[0].SD
-        edge.RD2 = u1.RD2 + u2[0].SD2
-        edge.RDd = u2[0].SD * u2[0].length + u1.RD * u1.length + u1.RDd + u2[0].SDd
+        if len(u2) == 1:
+            edge.R += u2[0].S
+            edge.Rd += u2[0].S * u2[0].length + u2[0].Sd
+            edge.Rd2 += u2[0].S * u2[0].length * u2[0].length + u2[0].Sd2 + 2 * u2[0].length * u2[0].Sd
+            edge.RD += u2[0].SD
+            edge.RD2 += u2[0].SD2
+            edge.RDd += u2[0].SD * u2[0].length + u2[0].SDd
 
     if not downstream.is_leaf():
         inc = list(downstream.incident_edges())
         inc = filter(lambda x: x.length != None and x != edge, inc)
-        d1, d2 = inc
-        d1tips = [d1.head_node, d1.tail_node]
-        d1tips.remove(downstream)
-        d2tips = [d2.head_node, d2.tail_node]
-        d2tips.remove(downstream)
-        dfs_R_values(d1, edge, downstream, d1tips[0])
-        dfs_R_values(d2, edge, downstream, d2tips[0])
+        for d1 in inc:
+            d1tips = [d1.head_node, d1.tail_node]
+            d1tips.remove(downstream)
+            dfs_R_values(d1, edge, downstream, d1tips[0])
 
 
 def solve2_2(a_11, a_12, a_21, a_22, c_1, c_2):
