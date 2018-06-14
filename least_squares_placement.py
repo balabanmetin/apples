@@ -135,7 +135,7 @@ def placement(tree, name, minimum_evolution):
 
 if __name__ == "__main__":
     fname = sys.argv[1]
-    df = pd.read_csv(sys.argv[2], sep="\s+", names = ["taxa", "dist"] , header = None)
+    df = pd.read_csv(sys.argv[2], sep="\s+", names = ["taxa", "dist"] , dtype = {"taxa": object}, header = None)
     obs_dist = pd.Series(df.dist.values,index=df.taxa).to_dict()
     f = open(fname)
     tree = dy.Tree.get_from_string(f.readline(), schema='newick')
