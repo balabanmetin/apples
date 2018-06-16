@@ -130,7 +130,7 @@ def placement(tree, name, minimum_evolution):
     else:
         nn.edge_length = max(placed_edge.x_2,0)
         headn.edge_length = placed_edge.length - max(placed_edge.x_2,0)
-    print(placed_edge.x_1, placed_edge.x_2)
+    #print(placed_edge.x_1, placed_edge.x_2)
 
 
 if __name__ == "__main__":
@@ -145,5 +145,5 @@ if __name__ == "__main__":
     dfs_S_values(master_edge, master_edge.tail_node)
     dfs_R_values(master_edge, None, master_edge.head_node, master_edge.tail_node)
     ols_parameters_per_edge(tree)
-    placement(tree, sys.argv[2].split("/")[-1].split(".")[0], 1)
+    placement(tree, sys.argv[2].split("/")[-1].split(".")[0], int(sys.argv[3]))
     tree.write(file = sys.stdout, schema = "newick")
