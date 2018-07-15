@@ -1,6 +1,7 @@
 import dendropy as dy
 import sys
 import pandas as pd
+from optparse import OptionParser
 
 
 def dfs_S_values(edge, downstream):
@@ -66,6 +67,7 @@ def dfs_R_values(edge, u1, upstream, downstream):
             dfs_R_values(d1, edge, downstream, d1tips[0])
 
 
+# solves two by two Ax=c linear system
 def solve2_2(a_11, a_12, a_21, a_22, c_1, c_2):
     det = 1 / (a_11 * a_22 - a_12 * a_21)
     assert det is not 0
@@ -88,7 +90,7 @@ def ols_parameters_per_edge(tree):
         e.x_1 = x_1
         e.x_2 = x_2
 
-
+# computes OLS error (Q value) for a given edge
 def ols_error(edge):
     A = edge.RD2 + edge.SD2
     B = 2 * (edge.x_1 + edge.x_2) * edge.Rd + \
@@ -102,13 +104,13 @@ def ols_error(edge):
     return A + B + C + D + E + F
 
 
-def placement(tree, name, minimum_evolution):
-    min = 999999999999
+def placement(tree, name, algo_name):
+    min = 2000000000
     placed_edge = None
     for e in tree.postorder_edge_iter():
         if e.head_node == tree.seed_node:
             continue
-        if minimum_evolution:
+        if algo_name == "ME":
             err = e.x_1
         else:
             err = ols_error(e)
@@ -134,10 +136,24 @@ def placement(tree, name, minimum_evolution):
 
 
 if __name__ == "__main__":
-    fname = sys.argv[1]
-    df = pd.read_csv(sys.argv[2], sep="\s+", names = ["taxa", "dist"] , dtype = {"taxa": object}, header = None)
+    parser = OptionParser()
+    parser.add_option("-t", "--tree", dest="tree_fp",
+                      help="path to the reference tree", metavar="FILE")
+    parser.add_option("-d", "--distances", dest="dist_fp",
+                      help="path to the table of observed distances", metavar="FILE")
+    parser.add_option("-q", "--query", dest="query_name",
+                      help="name of the query taxon", metavar="NAME")
+    parser.add_option("-a", "--algo", dest="algo_name",
+                      help="name of the algorithm (ME, OLS, or LSVS)", metavar="ALGO")
+
+    (options, args) = parser.parse_args()
+    tree_fp = options.tree_fp
+    dist_fp = options.dist_fp
+    algo_name = options.algo_name
+    query_name = options.query_name
+    df = pd.read_csv(dist_fp, sep="\s+", names = ["taxa", "dist"] , dtype = {"taxa": object}, header = None)
     obs_dist = pd.Series(df.dist.values,index=df.taxa).to_dict()
-    f = open(fname)
+    f = open(tree_fp)
     tree = dy.Tree.get_from_string(f.readline(), schema='newick')
     Dsum = sum(obs_dist.values())
     n = len(obs_dist)
@@ -145,5 +161,5 @@ if __name__ == "__main__":
     dfs_S_values(master_edge, master_edge.tail_node)
     dfs_R_values(master_edge, None, master_edge.head_node, master_edge.tail_node)
     ols_parameters_per_edge(tree)
-    placement(tree, sys.argv[2].split("/")[-1].split(".")[0], int(sys.argv[3]))
+    placement(tree, query_name, algo_name)
     tree.write(file = sys.stdout, schema = "newick")
