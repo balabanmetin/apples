@@ -34,21 +34,7 @@ class Algorithm(ABC):
             if err < min:
                 min = err
                 placed_edge = e
-        tailn = placed_edge.tail_node
-        headn = placed_edge.head_node
-        tailn.remove_child(headn)
-        nn = dy.Node()
-        nn.add_child(headn)
-        qry = dy.Node(taxon=dy.Taxon(query_name))
-        nn.add_child(qry)
-        qry.edge_length = placed_edge.x_1
-        tailn.add_child(nn)
-        if placed_edge.head_node in list(master_edge.head_node.ancestor_iter()) or master_edge == placed_edge:
-            nn.edge_length = placed_edge.length - max(placed_edge.x_2, 0)
-            headn.edge_length = max(placed_edge.x_2, 0)
-        else:
-            nn.edge_length = max(placed_edge.x_2, 0)
-            headn.edge_length = placed_edge.length - max(placed_edge.x_2, 0)
+        insert(placed_edge, query_name)
         return self.tree
 
 class OLS(Algorithm):
@@ -140,6 +126,25 @@ class BE(Algorithm):
         E = -2 * edge.Rd - 2 * edge.Sd
         F = edge.Rd2_D + edge.Sd2_D
         return A + B + C + D + E + F
+
+# inserts query into reference tree at given edge.
+
+def insert(placed_edge, query_name):
+    tailn = placed_edge.tail_node
+    headn = placed_edge.head_node
+    tailn.remove_child(headn)
+    nn = dy.Node()
+    nn.add_child(headn)
+    qry = dy.Node(taxon=dy.Taxon(query_name))
+    nn.add_child(qry)
+    qry.edge_length = placed_edge.x_1
+    tailn.add_child(nn)
+    if placed_edge.head_node in list(master_edge.head_node.ancestor_iter()) or master_edge == placed_edge:
+        nn.edge_length = placed_edge.length - max(placed_edge.x_2, 0)
+        headn.edge_length = max(placed_edge.x_2, 0)
+    else:
+        nn.edge_length = max(placed_edge.x_2, 0)
+        headn.edge_length = placed_edge.length - max(placed_edge.x_2, 0)
 
 # solves two by two Ax=c linear system
 def solve2_2(a_11, a_12, a_21, a_22, c_1, c_2):
@@ -267,6 +272,15 @@ if __name__ == "__main__":
     f = open(tree_fp)
     tree = dy.Tree.get_from_string(f.readline(), schema='newick')
     master_edge = next(tree.postorder_edge_iter())
+    for l in tree.leaf_node_iter():
+        if l.taxon.label not in obs_dist:
+            raise ValueError('Taxon {} should be in distances table.'.format(l.taxon.label))
+        if obs_dist[l.taxon.label] == 0:
+            l.edge.x_1 = 0
+            l.edge.x_2 = 0
+            insert(l.edge, query_name)
+            tree.write(file=sys.stdout, schema="newick")
+            exit(0)
     dfs_S_values(master_edge, master_edge.tail_node)
     dfs_R_values(master_edge, None, master_edge.head_node, master_edge.tail_node)
     if algo_name == "BE":
