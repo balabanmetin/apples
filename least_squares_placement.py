@@ -268,7 +268,6 @@ if __name__ == "__main__":
     algo_name = options.algo_name
     query_name = options.query_name
     selection_name = options.selection_name
-    hybrid = options.hybrid
 
     df = pd.read_csv(dist_fp, sep="\s+", names = ["taxa", "dist"] , dtype = {"taxa": object}, header = None)
     obs_dist = pd.Series(df.dist.values,index=df.taxa).to_dict()
