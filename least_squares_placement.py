@@ -3,6 +3,8 @@ import sys
 import pandas as pd
 from optparse import OptionParser
 from abc import ABC, abstractmethod
+import heapq
+import math
 
 # Glossary
 # OLS: Ordinary Least Squares
@@ -21,19 +23,18 @@ class Algorithm(ABC):
     def error_per_edge(self, edge):
         pass
 
-    def placement(self, query_name, me_flag):
-        min = 2000000000
-        placed_edge = None
-        for e in tree.postorder_edge_iter():
-            if e.head_node == tree.seed_node:
-                continue
-            if me_flag:
-                err = e.x_1
-            else:
-                err = self.error_per_edge(e)
-            if err < min:
-                min = err
-                placed_edge = e
+    def placement(self, query_name, selection_name):
+        if selection_name == "HYBRID":
+            sm = heapq.nsmallest(math.floor(math.log2(len(self.tree.leaf_nodes()))),
+                                 tree.postorder_edge_iter(filter_fn = lambda e: e.head_node != tree.seed_node),
+                                 key = lambda e: self.error_per_edge(e))
+            placed_edge = min(sm, key = lambda e: e.x_1)
+        elif selection_name == "ME":
+            placed_edge = min(tree.postorder_edge_iter(filter_fn = lambda e: e.head_node != tree.seed_node),
+                              key=lambda e: e.x_1)
+        else: # selection_name == "MLSE"
+            placed_edge = min(tree.postorder_edge_iter(filter_fn = lambda e: e.head_node != tree.seed_node),
+                              key=lambda e: self.error_per_edge(e))
         insert(placed_edge, query_name)
         return self.tree
 
@@ -255,17 +256,19 @@ if __name__ == "__main__":
                       help="path to the table of observed distances", metavar="FILE")
     parser.add_option("-q", "--query", dest="query_name",
                       help="name of the query taxon", metavar="NAME")
-    parser.add_option("-a", "--algo", dest="algo_name",
+    parser.add_option("-a", "--algo", dest="algo_name", default = "OLS",
                       help="name of the algorithm (OLS, FM, or BE)", metavar="ALGO")
-    parser.add_option("-m", "--me", action="store_true", dest="minimum_evolution", default=False,
-                      help="performs the placement based on minimum evolution principle")
+    parser.add_option("-s", "--selection", dest="selection_name", default = "MLSE",
+                      help="name of the placement selection criteria (MLSE, ME, or HYBRID", metavar="CRITERIA")
+
 
     (options, args) = parser.parse_args()
     tree_fp = options.tree_fp
     dist_fp = options.dist_fp
     algo_name = options.algo_name
     query_name = options.query_name
-    minimum_evolution = options.minimum_evolution
+    selection_name = options.selection_name
+    hybrid = options.hybrid
 
     df = pd.read_csv(dist_fp, sep="\s+", names = ["taxa", "dist"] , dtype = {"taxa": object}, header = None)
     obs_dist = pd.Series(df.dist.values,index=df.taxa).to_dict()
@@ -290,5 +293,5 @@ if __name__ == "__main__":
     else:
         alg = OLS(tree)
     alg.placement_per_edge()
-    output_tree = alg.placement(query_name, minimum_evolution)
+    output_tree = alg.placement(query_name, selection_name)
     output_tree.write(file = sys.stdout, schema = "newick")
