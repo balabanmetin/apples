@@ -173,7 +173,7 @@ def dfs_S_values(edge, downstream):
 
     else:
         inc = list(downstream.incident_edges())
-        inc = filter(lambda x: x.length != None and x != edge, inc)
+        inc = filter(lambda e: e.head_node != tree.seed_node and e != edge, inc)
         edge.S, edge.SDd, edge.Sd, edge.Sd_D, edge.Sd_D2, edge.Sd2, edge.Sd2_D, edge.Sd2_D2, edge.SD2, edge.SD, edge.S1_D,  edge.S1_D2 = 12*[0]
         for d1  in inc:
             d1tips = [d1.head_node, d1.tail_node]
@@ -224,7 +224,7 @@ def dfs_R_values(edge, u1, upstream, downstream):
         edge.R1_D = u1.R1_D
         edge.R1_D2 = u1.R1_D2
         inc = list(upstream.incident_edges())
-        u2 = list(filter(lambda x: x.length != None and x != edge and x != u1, inc))
+        u2 = list(filter(lambda e: e.head_node != tree.seed_node and e != u1 and e != edge, inc))
         if len(u2) == 1:
             edge.R += u2[0].S
             edge.RDd += u2[0].SD * u2[0].length + u2[0].SDd
@@ -241,7 +241,7 @@ def dfs_R_values(edge, u1, upstream, downstream):
 
     if not downstream.is_leaf():
         inc = list(downstream.incident_edges())
-        inc = filter(lambda x: x.length != None and x != edge, inc)
+        inc = filter(lambda e: e.head_node != tree.seed_node and e != edge, inc)
         for d1 in inc:
             d1tips = [d1.head_node, d1.tail_node]
             d1tips.remove(downstream)
