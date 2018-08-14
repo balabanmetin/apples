@@ -254,8 +254,6 @@ if __name__ == "__main__":
                       help="path to the reference tree", metavar="FILE")
     parser.add_option("-d", "--distances", dest="dist_fp",
                       help="path to the table of observed distances", metavar="FILE")
-    parser.add_option("-q", "--query", dest="query_name",
-                      help="name of the query taxon", metavar="NAME")
     parser.add_option("-a", "--algo", dest="algo_name", default = "OLS",
                       help="name of the algorithm (OLS, FM, or BE)", metavar="ALGO")
     parser.add_option("-s", "--selection", dest="selection_name", default = "MLSE",
@@ -266,31 +264,32 @@ if __name__ == "__main__":
     tree_fp = options.tree_fp
     dist_fp = options.dist_fp
     algo_name = options.algo_name
-    query_name = options.query_name
     selection_name = options.selection_name
 
-    df = pd.read_csv(dist_fp, sep="\s+", names = ["taxa", "dist"] , dtype = {"taxa": object}, header = None)
-    obs_dist = pd.Series(df.dist.values,index=df.taxa).to_dict()
     f = open(tree_fp)
-    tree = dy.Tree.get_from_string(f.readline(), schema='newick')
-    master_edge = next(tree.postorder_edge_iter())
-    for l in tree.leaf_node_iter():
-        if l.taxon.label not in obs_dist:
-            raise ValueError('Taxon {} should be in distances table.'.format(l.taxon.label))
-        if obs_dist[l.taxon.label] == 0:
-            l.edge.x_1 = 0
-            l.edge.x_2 = 0
-            insert(l.edge, query_name)
-            tree.write(file=sys.stdout, schema="newick")
-            exit(0)
-    dfs_S_values(master_edge, master_edge.tail_node)
-    dfs_R_values(master_edge, None, master_edge.head_node, master_edge.tail_node)
-    if algo_name == "BE":
-        alg = BE(tree)
-    elif algo_name == "FM":
-        alg = FM(tree)
-    else:
-        alg = OLS(tree)
-    alg.placement_per_edge()
-    output_tree = alg.placement(query_name, selection_name)
-    output_tree.write(file = sys.stdout, schema = "newick")
+    tree_string = f.readline()
+    df = pd.read_csv(dist_fp, sep="\s+", header = 0, index_col = 0)
+    for query_name in df.index:
+        obs_dist = pd.Series(df.loc[query_name],index=df.columns.values).to_dict()
+        tree = dy.Tree.get_from_string(tree_string, schema='newick')
+        master_edge = next(tree.postorder_edge_iter())
+        for l in tree.leaf_node_iter():
+            if l.taxon.label not in obs_dist:
+                raise ValueError('Taxon {} should be in distances table.'.format(l.taxon.label))
+            if obs_dist[l.taxon.label] == 0:
+                l.edge.x_1 = 0
+                l.edge.x_2 = 0
+                insert(l.edge, query_name)
+                tree.write(file=sys.stdout, schema="newick")
+                exit(0)
+        dfs_S_values(master_edge, master_edge.tail_node)
+        dfs_R_values(master_edge, None, master_edge.head_node, master_edge.tail_node)
+        if algo_name == "BE":
+            alg = BE(tree)
+        elif algo_name == "FM":
+            alg = FM(tree)
+        else:
+            alg = OLS(tree)
+        alg.placement_per_edge()
+        output_tree = alg.placement(query_name, selection_name)
+        output_tree.write(file = sys.stdout, schema = "newick")
