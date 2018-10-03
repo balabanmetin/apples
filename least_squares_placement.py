@@ -1,10 +1,10 @@
 import dendropy as dy
 import sys
-import pandas as pd
 from optparse import OptionParser
 from abc import ABC, abstractmethod
 import heapq
 import math
+import time
 
 # Glossary
 # OLS: Ordinary Least Squares
@@ -51,7 +51,7 @@ class OLS(Algorithm):
             a_22 = a_11
             c_1 = e.RD + e.SD - e.length * e.S - e.Rd - e.Sd
             c_2 = e.RD - e.SD + e.length * e.S - e.Rd + e.Sd
-            x_1, x_2 = solve2_2(a_11, a_12, a_21, a_22, c_1, c_2)
+            x_1, x_2 = solve2_2(a_11, a_12, a_21, a_22, c_1, c_2, e.length)
             e.x_1 = x_1
             e.x_2 = x_2
 
@@ -81,7 +81,7 @@ class FM(Algorithm):
             a_22 = a_11
             c_1 = e.R1_D + e.S1_D - e.length * e.S1_D2 - e.Rd_D2 - e.Sd_D2
             c_2 = e.R1_D - e.S1_D + e.length * e.S1_D2 - e.Rd_D2 + e.Sd_D2
-            x_1, x_2 = solve2_2(a_11, a_12, a_21, a_22, c_1, c_2)
+            x_1, x_2 = solve2_2(a_11, a_12, a_21, a_22, c_1, c_2, e.length)
             e.x_1 = x_1
             e.x_2 = x_2
 
@@ -111,7 +111,7 @@ class BE(Algorithm):
             a_22 = a_11
             c_1 = e.R + e.S - e.length * e.S1_D - e.Rd_D - e.Sd_D
             c_2 = e.R - e.S + e.length * e.S1_D - e.Rd_D + e.Sd_D
-            x_1, x_2 = solve2_2(a_11, a_12, a_21, a_22, c_1, c_2)
+            x_1, x_2 = solve2_2(a_11, a_12, a_21, a_22, c_1, c_2, e.length)
             e.x_1 = x_1
             e.x_2 = x_2
 
@@ -147,12 +147,31 @@ def insert(placed_edge, query_name):
         nn.edge_length = max(placed_edge.x_2, 0)
         headn.edge_length = placed_edge.length - max(placed_edge.x_2, 0)
 
-# solves two by two Ax=c linear system
-def solve2_2(a_11, a_12, a_21, a_22, c_1, c_2):
+# solves two by two Ax=c linear system and returns the optimal values defined by
+# constraints. This is thanks to the convexity of (weighted) least squared error
+def solve2_2(a_11, a_12, a_21, a_22, c_1, c_2, edge_length):
     det = 1 / (a_11 * a_22 - a_12 * a_21)
     assert det is not 0
     x_1 = (a_22 * c_1 - a_12 * c_2) * det
     x_2 = (- a_21 * c_1 + a_11 * c_2) * det
+    if x_1 < 0 and x_2 < 0:
+        x_1 = 0
+        x_2 = 0
+    elif x_1 > 0 and x_2 < 0:
+        x_1 = max(c_1 * 1.0 / a_11,0)
+        x_2 = 0
+    elif x_1 < 0 and 0 <= x_2 and x_2 <= edge_length:
+        x_1 = 0
+        x_2 = min(max(c_2 * 1.0 / a_22, 0), edge_length)
+    elif x_1 < 0 and x_2 > edge_length:
+        x_1 = 0
+        x_2 = edge_length
+    elif x_1 > 0 and x_2 > edge_length:
+        x_1 = max((c_1 * 1.0 - a_12 * edge_length) / a_11,0)
+        x_2 = edge_length
+    else:
+        x_1 = x_1
+        x_2 = x_2
     return (x_1, x_2)
 
 def dfs_S_values(edge, downstream):
@@ -268,9 +287,14 @@ if __name__ == "__main__":
 
     f = open(tree_fp)
     tree_string = f.readline()
-    df = pd.read_csv(dist_fp, sep="\s+", header = 0, index_col = 0)
-    for query_name in df.index:
-        obs_dist = pd.Series(df.loc[query_name],index=df.columns.values).to_dict()
+
+    tbl = open(dist_fp)
+    tags = tbl.readline().strip().split('\t')
+
+    for line in tbl.readlines():
+        dists = line.strip().split('\t')
+        query_name = dists[0]
+        obs_dist = dict(zip(tags, map(float,dists[1:])))
         tree = dy.Tree.get_from_string(tree_string, schema='newick')
         master_edge = next(tree.postorder_edge_iter())
         for l in tree.leaf_node_iter():
@@ -293,3 +317,4 @@ if __name__ == "__main__":
         alg.placement_per_edge()
         output_tree = alg.placement(query_name, selection_name)
         output_tree.write(file = sys.stdout, schema = "newick")
+
