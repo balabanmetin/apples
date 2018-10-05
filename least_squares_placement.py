@@ -4,8 +4,7 @@ from optparse import OptionParser
 from abc import ABC, abstractmethod
 import heapq
 import math
-import time
-
+import re
 # Glossary
 # OLS: Ordinary Least Squares
 # FM: Fitch-Margoliash --Least Squares with Variance scaling
@@ -289,10 +288,10 @@ if __name__ == "__main__":
     tree_string = f.readline()
 
     tbl = open(dist_fp)
-    tags = tbl.readline().strip().split('\t')
+    tags = list(re.split("\s+", tbl.readline().strip()))
 
     for line in tbl.readlines():
-        dists = line.strip().split('\t')
+        dists = list(re.split("\s+", line.strip()))
         query_name = dists[0]
         obs_dist = dict(zip(tags, map(float,dists[1:])))
         tree = dy.Tree.get_from_string(tree_string, schema='newick')
