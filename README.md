@@ -1,2 +1,2 @@
 # APPLES 
-Alignment-Free Phylogenetic Placement with LEast Squares
+Apples Phylogenetic Placement with LEast Squares
