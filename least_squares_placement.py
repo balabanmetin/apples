@@ -153,24 +153,25 @@ def solve2_2(a_11, a_12, a_21, a_22, c_1, c_2, edge_length):
     assert det is not 0
     x_1 = (a_22 * c_1 - a_12 * c_2) * det
     x_2 = (- a_21 * c_1 + a_11 * c_2) * det
-    if x_1 < 0 and x_2 < 0:
-        x_1 = 0
-        x_2 = 0
-    elif x_1 > 0 and x_2 < 0:
-        x_1 = max(c_1 * 1.0 / a_11,0)
-        x_2 = 0
-    elif x_1 < 0 and 0 <= x_2 and x_2 <= edge_length:
-        x_1 = 0
-        x_2 = min(max(c_2 * 1.0 / a_22, 0), edge_length)
-    elif x_1 < 0 and x_2 > edge_length:
-        x_1 = 0
-        x_2 = edge_length
-    elif x_1 > 0 and x_2 > edge_length:
-        x_1 = max((c_1 * 1.0 - a_12 * edge_length) / a_11,0)
-        x_2 = edge_length
-    else:
-        x_1 = x_1
-        x_2 = x_2
+    if positive_branch:
+        if x_1 < 0 and x_2 < 0:
+            x_1 = 0
+            x_2 = 0
+        elif x_1 > 0 and x_2 < 0:
+            x_1 = max(c_1 * 1.0 / a_11,0)
+            x_2 = 0
+        elif x_1 < 0 and 0 <= x_2 and x_2 <= edge_length:
+            x_1 = 0
+            x_2 = min(max(c_2 * 1.0 / a_22, 0), edge_length)
+        elif x_1 < 0 and x_2 > edge_length:
+            x_1 = 0
+            x_2 = edge_length
+        elif x_1 > 0 and x_2 > edge_length:
+            x_1 = max((c_1 * 1.0 - a_12 * edge_length) / a_11,0)
+            x_2 = edge_length
+        else:
+            x_1 = x_1
+            x_2 = x_2
     return (x_1, x_2)
 
 def dfs_S_values(edge, downstream):
@@ -276,6 +277,8 @@ if __name__ == "__main__":
                       help="name of the algorithm (OLS, FM, or BE)", metavar="ALGO")
     parser.add_option("-s", "--selection", dest="selection_name", default = "MLSE",
                       help="name of the placement selection criteria (MLSE, ME, or HYBRID", metavar="CRITERIA")
+    parser.add_option("-p", "--positive", dest="positive_branch", action = 'store_true',
+                      help="enforces positivity constraint on new branch lengths")
 
 
     (options, args) = parser.parse_args()
@@ -283,6 +286,9 @@ if __name__ == "__main__":
     dist_fp = options.dist_fp
     algo_name = options.algo_name
     selection_name = options.selection_name
+    positive_branch = options.positive_branch
+
+
 
     f = open(tree_fp)
     tree_string = f.readline()
