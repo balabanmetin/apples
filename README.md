@@ -1,2 +1,2 @@
 # APPLES 
-Apples Phylogenetic Placement with LEast Squares
+Alacritous Phylogenetic Placement with LEast Squares
