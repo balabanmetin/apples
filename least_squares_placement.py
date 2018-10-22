@@ -293,6 +293,9 @@ if __name__ == "__main__":
                       help="name of the placement selection criteria (MLSE, ME, or HYBRID", metavar="CRITERIA")
     parser.add_option("-p", "--positive", dest="positive_branch", action='store_true',
                       help="enforces positivity constraint on new branch lengths")
+    parser.add_option("-b", "--blastlike", dest="blast_like", action='store_true',
+                      help="places the query on the pendant edge of the closest taxa")
+
 
     (options, args) = parser.parse_args()
     tree_fp = options.tree_fp
@@ -300,6 +303,7 @@ if __name__ == "__main__":
     algo_name = options.algo_name
     selection_name = options.selection_name
     positive_branch = options.positive_branch
+    blast_like = options.blast_like
 
     f = open(tree_fp)
     tree_string = f.readline()
@@ -313,6 +317,7 @@ if __name__ == "__main__":
         obs_dist = dict(zip(tags, map(float, dists[1:])))
         tree = dy.Tree.get_from_string(tree_string, schema='newick')
         master_edge = next(tree.postorder_edge_iter())
+        closest_val = 999999
         for l in tree.leaf_node_iter():
             if l.taxon.label not in obs_dist:
                 raise ValueError('Taxon {} should be in distances table.'.format(l.taxon.label))
@@ -320,6 +325,14 @@ if __name__ == "__main__":
                 insert(l.edge, query_name, 0, 0)
                 tree.write(file=sys.stdout, schema="newick")
                 exit(0)
+            if(blast_like):
+                if obs_dist[l.taxon.label] < closest_val:
+                    closest_val = obs_dist[l.taxon.label]
+                    closest_taxa = l
+        if(blast_like):
+            insert(closest_taxa.edge, query_name, 0, 0)
+            tree.write(file=sys.stdout, schema="newick")
+            exit(0)
         dfs_S_values(master_edge, master_edge.tail_node)
         dfs_R_values(master_edge, None, master_edge.head_node, master_edge.tail_node)
         if algo_name == "BE":
