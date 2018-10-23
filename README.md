@@ -1,2 +1,2 @@
 # APPLES 
-Alacritous Phylogenetic Placement with LEast Squares
+Accurate Phylogenetic Placement with LEast Squares
