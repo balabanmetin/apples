@@ -311,7 +311,7 @@ if __name__ == "__main__":
         dists = list(re.split("\s+", line.strip()))
         query_name = dists[0]
         obs_dist = dict(zip(tags, map(float, dists[1:])))
-        tree = dy.Tree.get_from_string(tree_string, schema='newick')
+        tree = dy.Tree.get_from_string(tree_string, schema='newick', preserve_underscores=True)
         master_edge = next(tree.postorder_edge_iter())
         for l in tree.leaf_node_iter():
             if l.taxon.label not in obs_dist:
