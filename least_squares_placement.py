@@ -29,12 +29,21 @@ class Algorithm(ABC):
             sm = heapq.nsmallest(math.floor(math.log2(len(self.tree.leaf_nodes()))),
                                  tree.postorder_edge_iter(filter_fn=lambda e: e.head_node != tree.seed_node),
                                  key=lambda e: self.error_per_edge(e))
-            placed_edge = min(sm, key=lambda e: e.x_1_neg)
-            insert(placed_edge, query_name, placed_edge.x_1_neg, placed_edge.x_2_neg)
+            if positive_branch == 2:
+                placed_edge = min(sm, key=lambda e: e.x_1)
+                insert(placed_edge, query_name, placed_edge.x_1, placed_edge.x_2)
+            else:
+                placed_edge = min(sm, key=lambda e: e.x_1_neg)
+                insert(placed_edge, query_name, placed_edge.x_1_neg, placed_edge.x_2_neg)
         elif selection_name == "ME":
-            placed_edge = min(tree.postorder_edge_iter(filter_fn=lambda e: e.head_node != tree.seed_node),
-                              key=lambda e: e.x_1_neg)
-            insert(placed_edge, query_name, placed_edge.x_1_neg, placed_edge.x_2_neg)
+            if positive_branch == 2:
+                placed_edge = min(tree.postorder_edge_iter(filter_fn=lambda e: e.head_node != tree.seed_node),
+                                  key=lambda e: e.x_1)
+                insert(placed_edge, query_name, placed_edge.x_1, placed_edge.x_2)
+            else:
+                placed_edge = min(tree.postorder_edge_iter(filter_fn=lambda e: e.head_node != tree.seed_node),
+                                  key=lambda e: e.x_1_neg)
+                insert(placed_edge, query_name, placed_edge.x_1_neg, placed_edge.x_2_neg)
         else:  # selection_name == "MLSE"
             placed_edge = min(tree.postorder_edge_iter(filter_fn=lambda e: e.head_node != tree.seed_node),
                               key=lambda e: self.error_per_edge(e))
@@ -162,7 +171,7 @@ def solve2_2(e, a_11, a_12, a_21, a_22, c_1, c_2):
     x_2_neg = (- a_21 * c_1 + a_11 * c_2) * det
     x_1 = x_1_neg
     x_2 = x_2_neg
-    if positive_branch:
+    if positive_branch > 0:
         if x_1_neg < 0 and x_2_neg < 0:
             x_1 = 0
             x_2 = 0
@@ -291,8 +300,8 @@ if __name__ == "__main__":
                       help="name of the algorithm (OLS, FM, or BE)", metavar="ALGO")
     parser.add_option("-s", "--selection", dest="selection_name", default="MLSE",
                       help="name of the placement selection criteria (MLSE, ME, or HYBRID", metavar="CRITERIA")
-    parser.add_option("-p", "--positive", dest="positive_branch", action='store_true',
-                      help="enforces positivity constraint on new branch lengths")
+    parser.add_option("-p", "--positive", dest="positive_branch",
+                      help="enforces positivity constraint on new branch lengths", metavar="SETTING",)
 
     (options, args) = parser.parse_args()
     tree_fp = options.tree_fp
