@@ -1,16 +1,20 @@
 import dendropy as dy
+import subprocess
 import sys
+from sys import platform as _platform
 from optparse import OptionParser
 from abc import ABC, abstractmethod
 import heapq
 import math
 import re
+import os.path
+import tempfile
 
 
 # Glossary
 # OLS: Ordinary Least Squares
-# FM: Fitch-Margoliash --Least Squares with Variance scaling
-# BE: Beyer --Least Squares with Standard Deviation scaling
+# FM: Fitch-Margoliash --Least Squares with \delta^2 scaling
+# BE: Beyer --Least Squares with \delta scaling
 
 class Algorithm(ABC):
     def __init__(self, tree):
@@ -162,7 +166,7 @@ def solve2_2(e, a_11, a_12, a_21, a_22, c_1, c_2):
     x_2_neg = (- a_21 * c_1 + a_11 * c_2) * det
     x_1 = x_1_neg
     x_2 = x_2_neg
-    if positive_branch:
+    if not negative_branch:
         if x_1_neg < 0 and x_2_neg < 0:
             x_1 = 0
             x_2 = 0
@@ -287,22 +291,59 @@ if __name__ == "__main__":
                       help="path to the reference tree", metavar="FILE")
     parser.add_option("-d", "--distances", dest="dist_fp",
                       help="path to the table of observed distances", metavar="FILE")
-    parser.add_option("-a", "--algo", dest="algo_name", default="OLS",
-                      help="name of the algorithm (OLS, FM, or BE)", metavar="ALGO")
+    parser.add_option("-a", "--aln", dest="aln_fp",
+                      help="path to the alignment file (PHYLIP), containing reference and query sequence",
+                      metavar="FILE")
+    parser.add_option("-m", "--method", dest="method_name", default="FM",
+                      help="name of the weighted least squares method (OLS, FM, or BE)", metavar="METHOD")
     parser.add_option("-s", "--selection", dest="selection_name", default="MLSE",
                       help="name of the placement selection criteria (MLSE, ME, or HYBRID", metavar="CRITERIA")
-    parser.add_option("-p", "--positive", dest="positive_branch", action='store_true',
-                      help="enforces positivity constraint on new branch lengths")
+    parser.add_option("-n", "--negative", dest="negative_branch", action='store_true',
+                      help="relaxes positivity constraint on new branch lengths, i.e. allows negative branch lengths")
+    parser.add_option("-p", "--protein", dest="protein_seqs", action='store_true',
+                      help="input sequences are protein sequences")
+    parser.add_option("-P", "--placement", dest="placement_set_size", default="-1",
+                      help="number of query sequences. First P sequences in the input alignment must be \
+                           queries, and the rest must be backbone sequences", metavar="NUMBER")
 
     (options, args) = parser.parse_args()
     tree_fp = options.tree_fp
     dist_fp = options.dist_fp
-    algo_name = options.algo_name
+    aln_fp = options.aln_fp
+    method_name = options.method_name
     selection_name = options.selection_name
-    positive_branch = options.positive_branch
+    negative_branch = options.negative_branch
+    protein_seqs = options.protein_seqs
+    placement_set_size = options.placement_set_size
+
 
     f = open(tree_fp)
     tree_string = f.readline()
+    f.close()
+
+    if aln_fp:
+        if dist_fp:
+            raise ValueError('Input should be either an alignment or a distance matrix, but not both!')
+        if protein_seqs:
+            datatype='p'
+        else:
+            datatype='d'
+        if placement_set_size == "-1":
+            raise ValueError('Number of queries is not specified!')
+        else:
+            query_size = "-Q {} ".format(placement_set_size)
+        if _platform == "darwin":
+            fastme_exec = os.path.join(os.path.dirname(__file__), 'tools/fastme-darwin64')
+        elif _platform == "linux" or _platform == "linux2":
+            fastme_exec = os.path.join(os.path.dirname(__file__), 'tools/fastme-linux64')
+        else:
+            # Windows
+            raise ValueError('Windows is not supported yet.')
+
+        dist_fp = tempfile.NamedTemporaryFile(delete=True).name
+
+        s = '{} -c -{}J -i {} -O {} {} 2> /dev/null > /dev/null'.format(fastme_exec, datatype, aln_fp, dist_fp, query_size)
+        subprocess.call(s, shell=True)
 
     tbl = open(dist_fp)
     tags = list(re.split("\s+", tbl.readline().strip()))
@@ -319,15 +360,17 @@ if __name__ == "__main__":
             if obs_dist[l.taxon.label] == 0:
                 insert(l.edge, query_name, 0, 0)
                 tree.write(file=sys.stdout, schema="newick")
-                exit(0)
+                exit(1)
         dfs_S_values(master_edge, master_edge.tail_node)
         dfs_R_values(master_edge, None, master_edge.head_node, master_edge.tail_node)
-        if algo_name == "BE":
+        if method_name == "BE":
             alg = BE(tree)
-        elif algo_name == "FM":
+        elif method_name == "FM":
             alg = FM(tree)
         else:
             alg = OLS(tree)
         alg.placement_per_edge()
         output_tree = alg.placement(query_name, selection_name)
         output_tree.write(file=sys.stdout, schema="newick")
+
+    tbl.close()
