@@ -30,6 +30,7 @@ The first `k` entry of the input alignment must be the `k` query sequences that 
 #### Input a distance matrix
 The format for distance matrix is a tab delimited csv file with column and row headers. You can find an example distance matrix for ten query sequences under `data/dist.mat`.
 You can run APPLES on the example by running the following command:
+
 `python apples.py -d data/dist.mat -t data/backbone.nwk -P 10`
 
 #### Output
