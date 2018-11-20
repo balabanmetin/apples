@@ -11,7 +11,7 @@ Requirements
 ---------------------------------------------
 Getting Started with APPLES
 ---------------------------------------------
-You can get started running APPLES with the following script on the example dataset:
+You can get started running APPLES with the following command on the example dataset:
 
 `python apples.py -a data/aln.phy -t backbone.nwk -P 10`
 
@@ -29,6 +29,8 @@ The first `k` entry of the input alignment must be the `k` query sequences that 
 
 #### Input a distance matrix
 The format for distance matrix is a tab delimited csv file with column and row headers. You can find an example distance matrix for ten query sequences under `data/dist.mat`.
+You can run APPLES on the example by running the following command:
+`python apples.py -d data/dist.mat -t data/backbone.nwk -P 10`
 
 #### Output
 Output is multiple lines of newick trees, i-th line is corresponding to the placement of the i-th entry in alignment/distance matrix.
