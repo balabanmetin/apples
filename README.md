@@ -13,11 +13,11 @@ Getting Started with APPLES
 ---------------------------------------------
 You can get started running APPLES with the following command on the example dataset:
 
-`python apples.py -a data/aln.phy -t backbone.nwk -P 10`
+`python3 apples.py -a data/aln.phy -t data/backbone.nwk -P 10`
 
 For more options, run the following command:
 
-`python apples.py -h`
+`python3 apples.py -h`
 
 ---------------------------------------------
 Input & Output Specification
