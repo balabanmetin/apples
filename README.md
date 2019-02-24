@@ -1,7 +1,7 @@
 ------------------------------------
 Summary
 ------------------------------------
-APPLES stands for `Accurate Phylogenetic Placement with LEast Squares` and addresses the problem of phylogenetic placement of DNA and protein sequences into an already existing reference tree.
+APPLES stands for `Accurate Phylogenetic Placement with LEast Squares` and addresses the problem of phylogenetic placement of DNA and protein sequences into an already existing reference tree. APPLES is a command line tool and it can run on **Linux, Mac OSX, and Windows**.
 
 Requirements
 -------------------
@@ -9,9 +9,10 @@ Requirements
 2. Dendropy: Version >= 4.0.0
 
 ------------------------------------
-Installation
+Installation on Linux, Mac OSX, or Windows
 ------------------------------------
-Install Dendropy using the following command:
+
+Install Dendropy using the following command in the command-line:
 
 `pip3 install --user dendropy`
 
