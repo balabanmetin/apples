@@ -349,7 +349,7 @@ if __name__ == "__main__":
         subprocess.call(s, stdout = nldef, stderr = nldef)
 
     tbl = open(dist_fp)
-    tags = list(re.split("\s+", tbl.readline().strip()))
+    tags = list(re.split("\s+", tbl.readline().rstrip()))[1:]
 
     for line in tbl.readlines():
         dists = list(re.split("\s+", line.strip()))
