@@ -332,18 +332,21 @@ if __name__ == "__main__":
             raise ValueError('Number of queries is not specified!')
         else:
             query_size = "-Q {} ".format(placement_set_size)
+        nldef = tempfile.NamedTemporaryFile(delete=True, mode='w+t')
         if _platform == "darwin":
             fastme_exec = os.path.join(os.path.dirname(__file__), 'tools/fastme-darwin64')
         elif _platform == "linux" or _platform == "linux2":
             fastme_exec = os.path.join(os.path.dirname(__file__), 'tools/fastme-linux64')
+        elif _platform == "win32" or _platform == "win64" or _platform == "msys":
+            fastme_exec = os.path.join(os.path.dirname(__file__), 'tools/fastme-win64.exe')
         else:
-            # Windows
-            raise ValueError('Windows is not supported yet.')
+            # Unrecognised system
+            raise ValueError('Your system {} is not supported yet.' % _platform)
 
-        dist_fp = tempfile.NamedTemporaryFile(delete=True).name
+        dist_fp = tempfile.NamedTemporaryFile(delete=True, mode='w+t').name
 
-        s = '{} -c -{}J -i {} -O {} {} 2> /dev/null > /dev/null'.format(fastme_exec, datatype, aln_fp, dist_fp, query_size)
-        subprocess.call(s, shell=True)
+        s = '{} -c -{}J -i {} -O {} {}'.format(fastme_exec, datatype, aln_fp, dist_fp, query_size)
+        subprocess.call(s, stdout = nldef, stderr = nldef)
 
     tbl = open(dist_fp)
     tags = list(re.split("\s+", tbl.readline().strip()))
