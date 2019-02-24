@@ -51,3 +51,13 @@ You can run APPLES on the example distance matrix by running the following comma
 
 #### Output
 Output is multiple lines of newick trees, i-th line is corresponding to the placement of the i-th entry in alignment/distance matrix.
+
+---------------------------------------------
+Acknowledgement
+---------------------------------------------
+
+APPLES uses my personal fork of FastME 2.0 software, developed by Lefort V., Desper R., Gascuel O.. I do not own or maintain the FastME 2.0 software, all credit goes to actual authors.
+The original software can be found via the following link:
+
+http://www.atgc-montpellier.fr/fastme/
+
