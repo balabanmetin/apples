@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import dendropy as dy
 import subprocess
 import sys
