@@ -346,8 +346,9 @@ if __name__ == "__main__":
 
         dist_fp = tempfile.NamedTemporaryFile(delete=True, mode='w+t').name
 
-        s = '{} -c -{}J -i {} -O {} {}'.format(fastme_exec, datatype, aln_fp, dist_fp, query_size)
+        s = [fastme_exec, "-c", "-{}J".format(datatype), "-i", aln_fp, "-O", dist_fp, "-Q", placement_set_size]
         subprocess.call(s, stdout = nldef, stderr = nldef)
+
 
     tbl = open(dist_fp)
     tags = list(re.split("\s+", tbl.readline().rstrip()))[1:]
