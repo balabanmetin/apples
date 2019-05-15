@@ -11,7 +11,7 @@ APPLES stands for `Accurate Phylogenetic Placement with LEast Squares` and addre
 Preprint
 ------------------------------------
 
-[APPLES: Fast Distance-based Phylogenetic Placement,
+[APPLES: Distance-based Phylogenetic Placement for Scalable and Assembly-free Sample Identification,
 Metin Balaban, Shahab Sarmashghi, Siavash Mirarab,
 bioRxiv 475566; doi: https://doi.org/10.1101/475566](https://doi.org/10.1101/475566)
 
@@ -48,29 +48,20 @@ For listing all options, run the following command:
 Input & Output Specification
 ---------------------------------------------
 
-Input reference (backbone) tree must be in newick format. APPLES can perform placements based on PHYLIP alignments or a distance table.
+Input reference (backbone) tree must be in newick format. APPLES can perform placements based on FASTA alignments of __nucleotide sequences__ (functionality for amino acid sequences will be added soon) or a distance table.
 #### Input an alignment 
-The first `k` entry of the input alignment must be the `k` query sequences that will be placed. All species in the backbone tree must have a corresponding sequence in the alignment. You can find an example distance matrix for ten query sequences under [data/aln.phy](data/aln.phy).
+APPLES require a reference alignment and a query alignment. All species in the backbone tree must have a corresponding sequence in the reference alignment. You can find an example reference alignment and query alignment for ten query sequences under [data/ref.fa](data/ref.fa) and [data/query.fa](data/query.fa) respectively.
 
 You can run APPLES with the following command on the example input alignment dataset:
 
-`apples.py -a data/aln.phy -t data/backbone.nwk -P 10`
+`apples.py -s data/ref.fa -q data/query.fa -t data/backbone.nwk`
 
 #### Input a distance matrix
 The format for distance matrix is a tab delimited csv file with column and row headers. Rows should represent query sequences and columns should represent reference sequences. You can find an example distance matrix for ten query sequences under [data/dist.mat](data/dist.mat). 
 You can run APPLES on the example distance matrix by running the following command:
 
-`apples.py -d data/dist.mat -t data/backbone.nwk -P 10`
+`apples.py -d data/dist.mat -t data/backbone.nwk`
 
 #### Output
-Output is multiple lines of newick trees, i-th line is corresponding to the placement of the i-th entry in alignment/distance matrix.
-
----------------------------------------------
-Acknowledgement
----------------------------------------------
-
-APPLES uses my personal fork of FastME 2.0 software, developed by Lefort V., Desper R., Gascuel O.. I do not own or maintain the FastME 2.0 software, all credit goes to actual authors.
-The original software can be found via the following link:
-
-http://www.atgc-montpellier.fr/fastme/
+Output is multiple lines of newick trees, i-th line is corresponding to the placement of the i-th entry in query alignment/distance matrix.
 
