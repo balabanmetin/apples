@@ -63,5 +63,5 @@ You can run APPLES on the example distance matrix by running the following comma
 `apples.py -d data/dist.mat -t data/backbone.nwk`
 
 #### Output
-Output is multiple lines of newick trees, i-th line is corresponding to the placement of the i-th entry in query alignment/distance matrix.
+Output is a jplace file containing placement results for all queries. For more information about jplace files, please refer to Matsen et. al. (2012) [https://doi.org/10.1371/journal.pone.0031009](https://doi.org/10.1371/journal.pone.0031009). The output file can be specified using `-o` command. When output file is not specified, the result will be printed to the standard output.
 

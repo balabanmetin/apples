@@ -1,25 +1,4 @@
 
-import dendropy as dy
-
-# inserts query into reference tree at given edge.
-
-def insert(tree, placed_edge, query_name, x_1, x_2):
-    tailn = placed_edge.tail_node
-    headn = placed_edge.head_node
-    tailn.remove_child(headn)
-    nn = dy.Node()
-    nn.add_child(headn)
-    qry = dy.Node(taxon=dy.Taxon(query_name))
-    nn.add_child(qry)
-    qry.edge_length = x_1
-    tailn.add_child(nn)
-    if placed_edge.head_node in list(tree.master_edge.head_node.ancestor_iter()) or tree.master_edge == placed_edge:
-        nn.edge_length = placed_edge.length - max(x_2, 0)
-        headn.edge_length = max(x_2, 0)
-    else:
-        nn.edge_length = max(x_2, 0)
-        headn.edge_length = placed_edge.length - max(x_2, 0)
-
 
 # solves two by two Ax=c linear system and returns the optimal values defined by
 # constraints. This is thanks to the convexity of (weighted) least squared error

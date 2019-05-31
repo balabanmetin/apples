@@ -3,24 +3,33 @@
 import dendropy as dy
 from optparse import OptionParser
 import re
-import util
-from core import Core
+from Core import Core
 from criteria import OLS, FM, BE
 import readfq
 import distance
 import multiprocessing as mp
+from jutil import extended_newick, join_jplace
+import sys
+import json
 
 
 def runquery(tree_string, query_name, obs_dist):
     tree = dy.Tree.get_from_string(tree_string, schema='newick', preserve_underscores=True)
     tree.master_edge = next(tree.postorder_edge_iter())
 
+    jplace=dict()
+    jplace["tree"]=extended_newick(tree)
+    jplace["version"] = 3
+    jplace["placements"] = [{"p":[[0,0,1,0,0]] ,"n":[query_name]}]
+    jplace["metadata"] = {"invocation":" ".join(sys.argv)}
+    jplace["fields"] = ["edge_num", "likelihood", "like_weight_ratio", "distal_length", "pendant_length"]
+
     for l in tree.leaf_node_iter():
         if l.taxon.label not in obs_dist:
             raise ValueError('Taxon {} should be in distances table.'.format(l.taxon.label))
         if obs_dist[l.taxon.label] == 0:
-            util.insert(tree, l.edge, query_name, 0, 0)
-            return tree.as_string(schema="newick")
+            jplace["placements"][0]["p"][0][0] = l.edge.edge_index
+            return jplace
 
     core = Core(obs_dist, tree)
     core.dp()
@@ -32,8 +41,8 @@ def runquery(tree_string, query_name, obs_dist):
     else:
         alg = OLS(core.tree)
     alg.placement_per_edge(negative_branch)
-    output_tree = alg.placement(query_name, criterion_name)
-    return output_tree.as_string(schema="newick")
+    jplace["placements"][0]["p"] = [alg.placement(criterion_name)]
+    return jplace
 
 
 if __name__ == "__main__":
@@ -42,6 +51,9 @@ if __name__ == "__main__":
                       help="path to the reference tree", metavar="FILE")
     parser.add_option("-d", "--distances", dest="dist_fp",
                       help="path to the table of observed distances", metavar="FILE")
+    parser.add_option("-o", "--output", dest="output_fp",
+                      help="path for the output jplace file",
+                      metavar="FILE")
     parser.add_option("-s", "--ref", dest="ref_fp",
                       help="path to the reference alignment file (FASTA), containing reference sequences",
                       metavar="FILE")
@@ -64,6 +76,7 @@ if __name__ == "__main__":
     tree_fp = options.tree_fp
     dist_fp = options.dist_fp
     ref_fp = options.ref_fp
+    output_fp = options.output_fp
     query_fp = options.query_fp
     method_name = options.method_name
     criterion_name = options.criterion_name
@@ -117,5 +130,11 @@ if __name__ == "__main__":
         pool = mp.Pool(mp.cpu_count())
 
     results = pool.starmap(runquery, queries)
-    print("".join(results))
+    result = join_jplace(results)
 
+    if output_fp:
+        f = open(output_fp, "w")
+    else:
+        f = sys.stdout
+    f.write(json.dumps(result, sort_keys=True, indent=4))
+    f.close()
