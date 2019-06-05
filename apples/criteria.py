@@ -1,5 +1,5 @@
-from Algorithm import Algorithm
-import util
+from apples.Algorithm import Algorithm
+from apples import util
 
 
 # Glossary

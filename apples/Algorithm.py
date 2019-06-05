@@ -2,7 +2,7 @@
 from abc import ABC, abstractmethod
 import heapq
 import math
-import util
+
 
 class Algorithm(ABC):
     def __init__(self, tree):

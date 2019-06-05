@@ -3,12 +3,11 @@
 import dendropy as dy
 from optparse import OptionParser
 import re
-from Core import Core
-from criteria import OLS, FM, BE
-import readfq
-import distance
+from apples.Core import Core
+from apples.criteria import OLS, FM, BE
+from apples import readfq, distance
 import multiprocessing as mp
-from jutil import extended_newick, join_jplace
+from apples.jutil import extended_newick, join_jplace
 import sys
 import json
 
@@ -57,6 +56,9 @@ if __name__ == "__main__":
     parser.add_option("-s", "--ref", dest="ref_fp",
                       help="path to the reference alignment file (FASTA), containing reference sequences",
                       metavar="FILE")
+    parser.add_option("-x", "--extendedref", dest="extended_ref_fp",
+                      help="path to the extened reference alignment file (FASTA), containing reference and query sequences",
+                      metavar="FILE")
     parser.add_option("-q", "--query", dest="query_fp",
                       help="path to the query alignment file (FASTA), containing query sequences",
                       metavar="FILE")
@@ -78,6 +80,7 @@ if __name__ == "__main__":
     ref_fp = options.ref_fp
     output_fp = options.output_fp
     query_fp = options.query_fp
+    extended_ref_fp = options.extended_ref_fp
     method_name = options.method_name
     criterion_name = options.criterion_name
     negative_branch = options.negative_branch
@@ -93,22 +96,41 @@ if __name__ == "__main__":
         if dist_fp:
             raise ValueError('Input should be either an alignment or a distance matrix, but not both!')
 
-        tags = []
-        seqs = []
+        reftags = []
+        refseqs = []
+        querytags = []
+        queryseqs = []
         num_query = 0
-
-        f = open(query_fp)
-        for name, seq, qual in readfq.readfq(f):
-            tags.append(name)
-            seqs.append(seq)
-            num_query += 1
-        f.close()
 
         f = open(ref_fp)
         for name, seq, qual in readfq.readfq(f):
-            tags.append(name)
-            seqs.append(seq)
+            reftags.append(name)
+            refseqs.append(seq)
         f.close()
+
+        if query_fp and extended_ref_fp:
+            raise ValueError('Input should be either an extended alignment or a query alignment, but not both!')
+        if query_fp:
+            f = open(query_fp)
+            for name, seq, qual in readfq.readfq(f):
+                querytags.append(name)
+                queryseqs.append(seq)
+            f.close()
+            num_query = len(querytags)
+        else:
+            f = open(extended_ref_fp)
+            setreftags = set(reftags)
+            for name, seq, qual in readfq.readfq(f):
+                if name not in setreftags:
+                    querytags.append(name)
+                    queryseqs.append(seq)
+            num_query = len(querytags)
+            f.close()
+
+        tags = querytags + reftags
+        seqs = queryseqs + refseqs
+
+
 
         mat = distance.calc_mp(range(num_query), seqs, num_thread)
         queries = zip([tree_string] * num_query, tags[:num_query], [dict(zip(tags, i)) for i in mat])

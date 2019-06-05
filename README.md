@@ -33,7 +33,7 @@ Then, clone the repository using the following command:
 
 `git clone https://github.com/balabanmetin/apples.git`
 
-Once the repository is downloaded, make [apples.py](apples.py) executable.
+Once the repository is downloaded, make [apples.py](run_apples.py) executable.
 
 
 ---------------------------------------------
