@@ -1,7 +1,7 @@
 import itertools
 import numpy as np
 import multiprocessing as mp
-import time
+import sys
 
 
 def jc69(a,b):
@@ -14,6 +14,8 @@ def jc69(a,b):
             valid+=1
             if c1 != c2:
                 mm += 1
+    if not valid :
+        return (5.0)
     p = mm*1.0/valid
     if (abs(p) - np.finfo(float).eps < 0):
         return 0.0
