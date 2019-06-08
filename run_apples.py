@@ -91,6 +91,8 @@ if __name__ == "__main__":
     protein_seqs = options.protein_seqs
     num_thread = int(options.num_thread)
 
+    if num_thread == 0:
+        num_thread = mp.cpu_count()
 
     f = open(tree_fp)
     tree_string = f.readline()
@@ -162,9 +164,8 @@ if __name__ == "__main__":
 
         dist_fp = tempfile.NamedTemporaryFile(delete=True, mode='w+t').name
 
-        s = [fastme_exec, "-c", "-{}J".format(datatype), "-i", phylipfile, "-O", dist_fp, "-Q", str(num_query)]
+        s = [fastme_exec, "-c", "-{}J".format(datatype), "-i", phylipfile, "-O", dist_fp, "-Q", str(num_query), "-T", str(num_thread)]
         subprocess.call(s, stdout = nldef, stderr = nldef)
-
 
         #mat = distance.calc_mp(range(num_query), seqs, num_thread)
         #queries = zip([tree_string] * num_query, tags[:num_query], [dict(zip(tags, i)) for i in mat])
@@ -172,10 +173,7 @@ if __name__ == "__main__":
     f = open(dist_fp)
     queries = read_dismat(f)
 
-    if num_thread:
-        pool = mp.Pool(num_thread)
-    else:
-        pool = mp.Pool(mp.cpu_count())
+    pool = mp.Pool(num_thread)
 
     results = pool.starmap(runquery, queries)
     result = join_jplace(results)
