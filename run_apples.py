@@ -1,15 +1,19 @@
 #!/usr/bin/env python3
-
+import os
+import subprocess
+import tempfile
 import dendropy as dy
 from optparse import OptionParser
 import re
 from apples.Core import Core
 from apples.criteria import OLS, FM, BE
-from apples import readfq, distance
+from apples import readfq,phylip
 import multiprocessing as mp
 from apples.jutil import extended_newick, join_jplace
 import sys
+from sys import platform as _platform
 import json
+
 
 
 def runquery(tree_string, query_name, obs_dist):
@@ -68,8 +72,8 @@ if __name__ == "__main__":
                       help="name of the placement selection criterion (MLSE, ME, or HYBRID", metavar="CRITERIA")
     parser.add_option("-n", "--negative", dest="negative_branch", action='store_true',
                       help="relaxes positivity constraint on new branch lengths, i.e. allows negative branch lengths")
-    #parser.add_option("-p", "--protein", dest="protein_seqs", action='store_true',
-    #                  help="input sequences are protein sequences")
+    parser.add_option("-p", "--protein", dest="protein_seqs", action='store_true',
+                      help="input sequences are protein sequences")
     parser.add_option("-T", "--threads", dest="num_thread", default="0",
                       help="number of cores used in placement. 0 to use all cores in the running machine", metavar="NUMBER")
 
@@ -84,13 +88,22 @@ if __name__ == "__main__":
     method_name = options.method_name
     criterion_name = options.criterion_name
     negative_branch = options.negative_branch
-    #protein_seqs = options.protein_seqs
+    protein_seqs = options.protein_seqs
     num_thread = int(options.num_thread)
 
 
     f = open(tree_fp)
     tree_string = f.readline()
     f.close()
+
+
+    def read_dismat(f):
+        tags = list(re.split("\s+", f.readline().rstrip()))[1:]
+        for line in f.readlines():
+            dists = list(re.split("\s+", line.strip()))
+            query_name = dists[0]
+            obs_dist = dict(zip(tags, map(float, dists[1:])))
+            yield (tree_string, query_name, obs_dist)
 
     if ref_fp:
         if dist_fp:
@@ -130,21 +143,34 @@ if __name__ == "__main__":
         tags = querytags + reftags
         seqs = queryseqs + refseqs
 
+        phylipfile = phylip.tophylip(tags, seqs)
+
+        if protein_seqs:
+            datatype='p'
+        else:
+            datatype='d'
+        nldef = tempfile.NamedTemporaryFile(delete=True, mode='w+t')
+        if _platform == "darwin":
+            fastme_exec = os.path.join(os.path.dirname(__file__), 'tools/fastme-darwin64')
+        elif _platform == "linux" or _platform == "linux2":
+            fastme_exec = os.path.join(os.path.dirname(__file__), 'tools/fastme-linux64')
+        elif _platform == "win32" or _platform == "win64" or _platform == "msys":
+            fastme_exec = os.path.join(os.path.dirname(__file__), 'tools/fastme-win64.exe')
+        else:
+            # Unrecognised system
+            raise ValueError('Your system {} is not supported yet.' % _platform)
+
+        dist_fp = tempfile.NamedTemporaryFile(delete=True, mode='w+t').name
+
+        s = [fastme_exec, "-c", "-{}J".format(datatype), "-i", phylipfile, "-O", dist_fp, "-Q", str(num_query)]
+        subprocess.call(s, stdout = nldef, stderr = nldef)
 
 
-        mat = distance.calc_mp(range(num_query), seqs, num_thread)
-        queries = zip([tree_string] * num_query, tags[:num_query], [dict(zip(tags, i)) for i in mat])
+        #mat = distance.calc_mp(range(num_query), seqs, num_thread)
+        #queries = zip([tree_string] * num_query, tags[:num_query], [dict(zip(tags, i)) for i in mat])
 
-    else:
-        f = open(dist_fp)
-        def read_dismat():
-            tags = list(re.split("\s+", f.readline().rstrip()))[1:]
-            for line in f.readlines():
-                dists = list(re.split("\s+", line.strip()))
-                query_name = dists[0]
-                obs_dist = dict(zip(tags, map(float, dists[1:])))
-                yield (tree_string, query_name, obs_dist)
-        queries = read_dismat()
+    f = open(dist_fp)
+    queries = read_dismat(f)
 
     if num_thread:
         pool = mp.Pool(num_thread)
