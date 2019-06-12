@@ -12,33 +12,31 @@ import sys
 import json
 
 
-def runquery(tree_string, query_name, obs_dist):
-    tree = dy.Tree.get_from_string(tree_string, schema='newick', preserve_underscores=True)
-    tree.master_edge = next(tree.postorder_edge_iter())
-
+def runquery(query_name, query_seq, obs_dist):
     jplace=dict()
-    jplace["tree"]=extended_newick(tree)
-    jplace["version"] = 3
     jplace["placements"] = [{"p":[[0,0,1,0,0]] ,"n":[query_name]}]
-    jplace["metadata"] = {"invocation":" ".join(sys.argv)}
-    jplace["fields"] = ["edge_num", "likelihood", "like_weight_ratio", "distal_length", "pendant_length"]
+    worker_id = mp.current_process()._identity[0]
+    treecore = treeperthread[worker_id - 1]
+    if not obs_dist:
+        obs_dist = {query_seq: 0}
+        for tagr,seqr in zip(reftags, refseqs):
+            obs_dist[tagr] = distance.jc69(query_seq, seqr)
 
-    for l in tree.leaf_node_iter():
+    for l in treecore.tree.leaf_node_iter():
         if l.taxon.label not in obs_dist:
             raise ValueError('Taxon {} should be in distances table.'.format(l.taxon.label))
         if obs_dist[l.taxon.label] == 0:
             jplace["placements"][0]["p"][0][0] = l.edge.edge_index
             return jplace
 
-    core = Core(obs_dist, tree)
-    core.dp()
+    treecore.dp(obs_dist)
 
     if method_name == "BE":
-        alg = BE(core.tree)
+        alg = BE(treecore.tree)
     elif method_name == "FM":
-        alg = FM(core.tree)
+        alg = FM(treecore.tree)
     else:
-        alg = OLS(core.tree)
+        alg = OLS(treecore.tree)
     alg.placement_per_edge(negative_branch)
     jplace["placements"][0]["p"] = [alg.placement(criterion_name)]
     return jplace
@@ -86,11 +84,19 @@ if __name__ == "__main__":
     negative_branch = options.negative_branch
     #protein_seqs = options.protein_seqs
     num_thread = int(options.num_thread)
-
+    if not num_thread:
+        num_thread = mp.cpu_count()
 
     f = open(tree_fp)
     tree_string = f.readline()
     f.close()
+
+    first_read_tree = dy.Tree.get_from_string(tree_string, schema='newick', preserve_underscores=True)
+    extended_newick_string = extended_newick(first_read_tree)
+    treeperthread = [Core(first_read_tree)]
+    for i in range(1,num_thread):
+        treeperthread.append(Core(dy.Tree(first_read_tree)))
+    assert len(treeperthread) == num_thread
 
     if ref_fp:
         if dist_fp:
@@ -130,10 +136,7 @@ if __name__ == "__main__":
         tags = querytags + reftags
         seqs = queryseqs + refseqs
 
-
-
-        mat = distance.calc_mp(range(num_query), seqs, num_thread)
-        queries = zip([tree_string] * num_query, tags[:num_query], [dict(zip(tags, i)) for i in mat])
+        queries = zip(querytags, queryseqs, num_query*[None])
 
     else:
         f = open(dist_fp)
@@ -146,13 +149,14 @@ if __name__ == "__main__":
                 yield (tree_string, query_name, obs_dist)
         queries = read_dismat()
 
-    if num_thread:
-        pool = mp.Pool(num_thread)
-    else:
-        pool = mp.Pool(mp.cpu_count())
-
+    pool = mp.Pool(num_thread)
     results = pool.starmap(runquery, queries)
+
     result = join_jplace(results)
+    result["tree"] = extended_newick_string
+    result["metadata"] = {"invocation":" ".join(sys.argv)}
+    result["fields"] = ["edge_num", "likelihood", "like_weight_ratio", "distal_length", "pendant_length"]
+    result["version"] = 3
 
     if output_fp:
         f = open(output_fp, "w")
