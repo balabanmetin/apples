@@ -12,11 +12,10 @@ import sys
 import json
 
 
+
 def runquery(query_name, query_seq, obs_dist):
     jplace=dict()
     jplace["placements"] = [{"p":[[0,0,1,0,0]] ,"n":[query_name]}]
-    worker_id = mp.current_process()._identity[0]
-    treecore = treeperthread[worker_id - 1]
     if not obs_dist:
         obs_dist = {query_seq: 0}
         for tagr,seqr in zip(reftags, refseqs):
@@ -71,7 +70,6 @@ if __name__ == "__main__":
     parser.add_option("-T", "--threads", dest="num_thread", default="0",
                       help="number of cores used in placement. 0 to use all cores in the running machine", metavar="NUMBER")
 
-
     (options, args) = parser.parse_args()
     tree_fp = options.tree_fp
     dist_fp = options.dist_fp
@@ -86,17 +84,6 @@ if __name__ == "__main__":
     num_thread = int(options.num_thread)
     if not num_thread:
         num_thread = mp.cpu_count()
-
-    f = open(tree_fp)
-    tree_string = f.readline()
-    f.close()
-
-    first_read_tree = dy.Tree.get_from_string(tree_string, schema='newick', preserve_underscores=True)
-    extended_newick_string = extended_newick(first_read_tree)
-    treeperthread = [Core(first_read_tree)]
-    for i in range(1,num_thread):
-        treeperthread.append(Core(dy.Tree(first_read_tree)))
-    assert len(treeperthread) == num_thread
 
     if ref_fp:
         if dist_fp:
@@ -133,9 +120,6 @@ if __name__ == "__main__":
             num_query = len(querytags)
             f.close()
 
-        tags = querytags + reftags
-        seqs = queryseqs + refseqs
-
         queries = zip(querytags, queryseqs, num_query*[None])
 
     else:
@@ -146,8 +130,16 @@ if __name__ == "__main__":
                 dists = list(re.split("\s+", line.strip()))
                 query_name = dists[0]
                 obs_dist = dict(zip(tags, map(float, dists[1:])))
-                yield (tree_string, query_name, obs_dist)
+                yield (query_name, None, obs_dist)
         queries = read_dismat()
+
+    f = open(tree_fp)
+    tree_string = f.readline()
+    f.close()
+    
+    first_read_tree = dy.Tree.get_from_string(tree_string, schema='newick', preserve_underscores=True)
+    extended_newick_string = extended_newick(first_read_tree)
+    treecore = Core(first_read_tree)
 
     pool = mp.Pool(num_thread)
     results = pool.starmap(runquery, queries)
