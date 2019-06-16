@@ -10,6 +10,7 @@ import multiprocessing as mp
 from apples.jutil import extended_newick, join_jplace
 import sys
 import json
+import numpy as np
 
 
 
@@ -17,7 +18,7 @@ def runquery(query_name, query_seq, obs_dist):
     jplace=dict()
     jplace["placements"] = [{"p":[[0,0,1,0,0]] ,"n":[query_name]}]
     if not obs_dist:
-        obs_dist = {query_seq: 0}
+        obs_dist = {query_name: 0}
         for tagr,seqr in zip(reftags, refseqs):
             obs_dist[tagr] = distance.jc69(query_seq, seqr)
 
@@ -98,7 +99,7 @@ if __name__ == "__main__":
         f = open(ref_fp)
         for name, seq, qual in readfq.readfq(f):
             reftags.append(name)
-            refseqs.append(seq)
+            refseqs.append(np.frombuffer(seq.encode(), dtype='S1'))
         f.close()
 
         if query_fp and extended_ref_fp:
@@ -107,7 +108,7 @@ if __name__ == "__main__":
             f = open(query_fp)
             for name, seq, qual in readfq.readfq(f):
                 querytags.append(name)
-                queryseqs.append(seq)
+                queryseqs.append(np.frombuffer(seq.encode(), dtype='S1'))
             f.close()
             num_query = len(querytags)
         else:
@@ -116,7 +117,7 @@ if __name__ == "__main__":
             for name, seq, qual in readfq.readfq(f):
                 if name not in setreftags:
                     querytags.append(name)
-                    queryseqs.append(seq)
+                    queryseqs.append(np.frombuffer(seq.encode(), dtype='S1'))
             num_query = len(querytags)
             f.close()
 

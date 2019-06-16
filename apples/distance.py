@@ -2,7 +2,7 @@ import numpy as np
 
 
 def jc69(a2,b2):
-    nondash=np.logical_and(a2!='-',b2!='-')
+    nondash=np.logical_and(a2!=b'-',b2!=b'-')
     valid = np.count_nonzero(nondash)
     if not valid:
         return 5.0
