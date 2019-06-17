@@ -11,16 +11,16 @@ def join_jplace(lst):
 def extended_newick(tree):
     """Newick printing algorithm is based on treeswift"""
 
-    if tree.seed_node.edge_length is None:
+    if tree.root.edge_length is None:
         suffix = ''
-    elif isinstance(tree.seed_node.edge_length, int):
-        suffix = ':%d' % tree.seed_node.edge_length
-    elif isinstance(tree.seed_node.edge_length, float) and tree.seed_node.edge_length.is_integer():
-        suffix = ':%d' % int(tree.seed_node.edge_length)
+    elif isinstance(tree.root.edge_length, int):
+        suffix = ':%d' % tree.root.edge_length
+    elif isinstance(tree.root.edge_length, float) and tree.root.edge_length.is_integer():
+        suffix = ':%d' % int(tree.root.edge_length)
     else:
-        suffix = ':%s' % str(tree.seed_node.edge_length)
-    strng = _nodeprint(tree.seed_node)
-    count = tree.seed_node.edge.edge_index
+        suffix = ':%s' % str(tree.root.edge_length)
+    strng = _nodeprint(tree.root)
+    count = tree.root.edge_index
     if tree.is_rooted:
         return '[&R] %s%s{%d};' % (strng, suffix, count)
     else:
@@ -31,19 +31,19 @@ def _nodeprint(root):
     node_to_str = dict()
     counter=0
 
-    for node in root.postorder_iter():
-        node.edge.edge_index = counter
+    for node in root.traverse_postorder():
+        node.edge_index = counter
         counter += 1
 
-    for node in root.postorder_iter():
+    for node in root.traverse_postorder():
         if node.is_leaf():
-            if node.taxon.label is None:
+            if node.label is None:
                 node_to_str[node] = ''
             else:
-                node_to_str[node] = str(node.taxon.label)
+                node_to_str[node] = str(node.label)
         else:
             out = ['(']
-            for c in node.child_node_iter():
+            for c in node.children:
                 out.append(node_to_str[c])
                 if c.edge_length is not None:
                     if isinstance(c.edge_length, int):
@@ -53,7 +53,7 @@ def _nodeprint(root):
                     else:
                         l_str = str(c.edge_length)
                     out.append(':%s' % l_str)
-                out.append('{%d}' % c.edge.edge_index)
+                out.append('{%d}' % c.edge_index)
                 out.append(',')
                 del node_to_str[c]
             out.pop()  # trailing comma

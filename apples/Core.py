@@ -2,135 +2,95 @@
 class Core:
     def __init__(self, tree):
         self.tree = tree
-        tree.master_edge = next(tree.postorder_edge_iter())
-        master_edge = self.tree.master_edge
-        self.tree_S_values(master_edge, master_edge.tail_node)
-        self.tree_R_values(master_edge, None, master_edge.head_node, master_edge.tail_node)
+        self.tree_S_values()
+        self.tree_R_values()
 
 
     def dp(self, obs_dist):
-        master_edge = self.tree.master_edge
-        self.observed_S_values(master_edge, master_edge.tail_node, obs_dist)
-        self.observed_R_values(master_edge, None, master_edge.head_node, master_edge.tail_node,obs_dist)
+        self.observed_S_values(obs_dist)
+        self.observed_R_values(obs_dist)
 
-    def observed_S_values(self, edge, downstream, obs_dist):
-        if downstream.is_leaf():
-            edge.SDd = 0
-            edge.Sd_D = 0
-            edge.Sd_D2 = 0
-            edge.Sd2_D = 0
-            edge.Sd2_D2 = 0
-            edge.SD = obs_dist[downstream.taxon.label]
-            edge.SD2 = edge.SD * edge.SD
-            edge.S1_D = 1 / edge.SD
-            edge.S1_D2 = 1 / (edge.SD * edge.SD)
+    def observed_S_values(self, obs_dist):
+        for node in self.tree.traverse_postorder():
+            if node.is_leaf():
+                node.SDd = 0
+                node.Sd_D = 0
+                node.Sd_D2 = 0
+                node.Sd2_D = 0
+                node.Sd2_D2 = 0
+                node.SD = obs_dist[node.label]
+                node.SD2 = node.SD * node.SD
+                node.S1_D = 1.0 / node.SD
+                node.S1_D2 = 1.0 / (node.SD * node.SD)
 
+            else:
+                node.SDd, node.Sd_D, node.Sd_D2, node.Sd2_D, node.Sd2_D2, node.SD2, node.SD, node.S1_D, node.S1_D2 = 9 * [
+                    0]
+                for child in node.children:
+                    node.SDd += child.edge_length * child.SD + child.SDd
+                    node.Sd_D += child.edge_length * child.S1_D + child.Sd_D
+                    node.Sd_D2 += child.edge_length * child.S1_D2 + child.Sd_D2
+                    node.Sd2_D += child.S1_D * child.edge_length * child.edge_length + child.Sd2_D + 2 * child.edge_length * child.Sd_D
+                    node.Sd2_D2 += child.S1_D2 * child.edge_length * child.edge_length + child.Sd2_D2 + 2 * child.edge_length * child.Sd_D2
+                    node.SD2 += child.SD2
+                    node.SD += child.SD
+                    node.S1_D += child.S1_D
+                    node.S1_D2 += child.S1_D2
+                    
+    def observed_R_values(self, obs_dist):
+        for node in self.tree.traverse_preorder():
+            if node == self.tree.root:
+                continue
+            node.RDd, node.Rd_D, node.Rd_D2, node.Rd2_D, node.Rd2_D2, node.RD2, node.RD, node.R1_D, node.R1_D2 = 9 * [0]
+            for sibling in node.parent.children:
+                if sibling != node:
+                    node.RDd += sibling.SD * sibling.edge_length + sibling.SDd
+                    node.Rd_D += sibling.edge_length * sibling.S1_D + sibling.Sd_D
+                    node.Rd_D2 += sibling.edge_length * sibling.S1_D2 + sibling.Sd_D2
+                    node.Rd2_D += sibling.S1_D * sibling.edge_length * sibling.edge_length + sibling.Sd2_D + 2 * sibling.edge_length * sibling.Sd_D
+                    node.Rd2_D2 += sibling.S1_D2 * sibling.edge_length * sibling.edge_length + sibling.Sd2_D2 + 2 * sibling.edge_length * sibling.Sd_D2
+                    node.RD2 += sibling.SD2
+                    node.RD += sibling.SD
+                    node.R1_D += sibling.S1_D
+                    node.R1_D2 += sibling.S1_D2
+            if node.parent != self.tree.root:
+                node.RDd += node.parent.RD * node.parent.edge_length + node.parent.RDd
+                node.Rd_D += node.parent.edge_length * node.parent.R1_D + node.parent.Rd_D
+                node.Rd_D2 += node.parent.edge_length * node.parent.R1_D2 + node.parent.Rd_D2
+                node.Rd2_D += node.parent.R1_D * node.parent.edge_length * node.parent.edge_length + node.parent.Rd2_D + 2 * node.parent.edge_length * node.parent.Rd_D
+                node.Rd2_D2 += node.parent.R1_D2 * node.parent.edge_length * node.parent.edge_length + node.parent.Rd2_D2 + 2 * node.parent.edge_length * node.parent.Rd_D2
+                node.RD2 += node.parent.RD2
+                node.RD += node.parent.RD
+                node.R1_D += node.parent.R1_D
+                node.R1_D2 += node.parent.R1_D2
 
-        else:
-            inc = list(downstream.incident_edges())
-            inc = filter(lambda e: e.head_node != self.tree.seed_node and e != edge, inc)
-            edge.SDd, edge.Sd_D, edge.Sd_D2, edge.Sd2_D, edge.Sd2_D2, edge.SD2, edge.SD, edge.S1_D, edge.S1_D2 = 9 * [0]
-            for d1 in inc:
-                d1tips = [d1.head_node, d1.tail_node]
-                d1tips.remove(downstream)
-                if len(d1tips) == 0:
-                    print("error")
-                self.observed_S_values(d1, d1tips[0], obs_dist)
-                edge.SDd += d1.length * d1.SD + d1.SDd
-                edge.Sd_D += d1.length * d1.S1_D + d1.Sd_D
-                edge.Sd_D2 += d1.length * d1.S1_D2 + d1.Sd_D2
-                edge.Sd2_D += d1.S1_D * d1.length * d1.length + d1.Sd2_D + 2 * d1.length * d1.Sd_D
-                edge.Sd2_D2 += d1.S1_D2 * d1.length * d1.length + d1.Sd2_D2 + 2 * d1.length * d1.Sd_D2
-                edge.SD2 += d1.SD2
-                edge.SD += d1.SD
-                edge.S1_D += d1.S1_D
-                edge.S1_D2 += d1.S1_D2
+    def tree_S_values(self):
+        for node in self.tree.traverse_postorder():
+            if node.is_leaf():
+                node.S = 1
+                node.Sd = 0
+                node.Sd2 = 0
 
-    def observed_R_values(self, edge, u1, upstream, downstream, obs_dist):
-        if upstream.is_leaf():
-            edge.RDd = 0
-            edge.Rd_D = 0
-            edge.Rd_D2 = 0
-            edge.Rd2_D = 0
-            edge.Rd2_D2 = 0
-            edge.RD = obs_dist[upstream.taxon.label]
-            edge.RD2 = edge.RD * edge.RD
-            edge.R1_D = 1 / edge.RD
-            edge.R1_D2 = 1 / (edge.RD * edge.RD)
+            else:
+                node.S, node.Sd, node.Sd2 = 3 * [0]
+                for child in node.children:
+                    node.S += child.S
+                    node.Sd += child.S * child.edge_length + child.Sd
+                    node.Sd2 += child.S * child.edge_length * child.edge_length + child.Sd2 + 2 * child.edge_length * child.Sd
 
-        else:
-            edge.RDd = u1.RD * u1.length + u1.RDd
-            edge.Rd_D = u1.length * u1.R1_D + u1.Rd_D
-            edge.Rd_D2 = u1.length * u1.R1_D2 + u1.Rd_D2
-            edge.Rd2_D = u1.R1_D * u1.length * u1.length + u1.Rd2_D + 2 * u1.length * u1.Rd_D
-            edge.Rd2_D2 = u1.R1_D2 * u1.length * u1.length + u1.Rd2_D2 + 2 * u1.length * u1.Rd_D2
-            edge.RD2 = u1.RD2
-            edge.RD = u1.RD
-            edge.R1_D = u1.R1_D
-            edge.R1_D2 = u1.R1_D2
-            inc = list(upstream.incident_edges())
-            u2 = list(filter(lambda e: e.head_node != self.tree.seed_node and e != u1 and e != edge, inc))
-            if len(u2) == 1:
-                edge.RDd += u2[0].SD * u2[0].length + u2[0].SDd
-                edge.Rd_D += u2[0].length * u2[0].S1_D + u2[0].Sd_D
-                edge.Rd_D2 += u2[0].length * u2[0].S1_D2 + u2[0].Sd_D2
-                edge.Rd2_D += u2[0].S1_D * u2[0].length * u2[0].length + u2[0].Sd2_D + 2 * u2[0].length * u2[0].Sd_D
-                edge.Rd2_D2 += u2[0].S1_D2 * u2[0].length * u2[0].length + u2[0].Sd2_D2 + 2 * u2[0].length * u2[0].Sd_D2
-                edge.RD2 += u2[0].SD2
-                edge.RD += u2[0].SD
-                edge.R1_D += u2[0].S1_D
-                edge.R1_D2 += u2[0].S1_D2
-
-        if not downstream.is_leaf():
-            inc = list(downstream.incident_edges())
-            inc = filter(lambda e: e.head_node != self.tree.seed_node and e != edge, inc)
-            for d1 in inc:
-                d1tips = [d1.head_node, d1.tail_node]
-                d1tips.remove(downstream)
-                self.observed_R_values(d1, edge, downstream, d1tips[0], obs_dist)
-
-    def tree_S_values(self, edge, downstream):
-        if downstream.is_leaf():
-            edge.S = 1
-            edge.Sd = 0
-            edge.Sd2 = 0
-
-        else:
-            inc = list(downstream.incident_edges())
-            inc = filter(lambda e: e.head_node != self.tree.seed_node and e != edge, inc)
-            edge.S, edge.Sd, edge.Sd2 = 3 * [0]
-            for d1 in inc:
-                d1tips = [d1.head_node, d1.tail_node]
-                d1tips.remove(downstream)
-                if len(d1tips) == 0:
-                    print("error")
-                self.tree_S_values(d1, d1tips[0])
-                edge.S += d1.S
-                edge.Sd += d1.S * d1.length + d1.Sd
-                edge.Sd2 += d1.S * d1.length * d1.length + d1.Sd2 + 2 * d1.length * d1.Sd
-
-    def tree_R_values(self, edge, u1, upstream, downstream):
-        if upstream.is_leaf():
-            edge.R = 1
-            edge.Rd = 0
-            edge.Rd2 = 0
-
-
-        else:
-            edge.R = u1.R
-            edge.Rd = u1.R * u1.length + u1.Rd
-            edge.Rd2 = u1.R * u1.length * u1.length + u1.Rd2 + 2 * u1.length * u1.Rd
-            inc = list(upstream.incident_edges())
-            u2 = list(filter(lambda e: e.head_node != self.tree.seed_node and e != u1 and e != edge, inc))
-            if len(u2) == 1:
-                edge.R += u2[0].S
-                edge.Rd += u2[0].S * u2[0].length + u2[0].Sd
-                edge.Rd2 += u2[0].S * u2[0].length * u2[0].length + u2[0].Sd2 + 2 * u2[0].length * u2[0].Sd
-
-        if not downstream.is_leaf():
-            inc = list(downstream.incident_edges())
-            inc = filter(lambda e: e.head_node != self.tree.seed_node and e != edge, inc)
-            for d1 in inc:
-                d1tips = [d1.head_node, d1.tail_node]
-                d1tips.remove(downstream)
-                self.tree_R_values(d1, edge, downstream, d1tips[0])
+    def tree_R_values(self):
+        for node in self.tree.traverse_preorder():
+            if node == self.tree.root:
+                continue
+            node.R, node.Rd, node.Rd2 = 3 * [0]
+            for sibling in node.parent.children:
+                if sibling != node:
+                    node.R += sibling.S
+                    node.Rd += sibling.S * sibling.edge_length + sibling.Sd
+                    node.Rd2 += sibling.S * sibling.edge_length * sibling.edge_length + sibling.Sd2 + \
+                                2 * sibling.edge_length * sibling.Sd
+            if node.parent != self.tree.root:
+                node.R += node.parent.R
+                node.Rd += node.parent.R * node.parent.edge_length + node.parent.Rd
+                node.Rd2 += node.parent.R * node.parent.edge_length * node.parent.edge_length + node.parent.Rd2 + \
+                           2 * node.parent.edge_length * node.parent.Rd
