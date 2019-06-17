@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
 
-import dendropy as dy
 from optparse import OptionParser
 import re
 from apples.Core import Core
-from apples.criteria import OLS, FM, BE
 from apples import readfq, distance
 import multiprocessing as mp
 from apples.jutil import extended_newick, join_jplace
 import sys
 import json
 import numpy as np
+import treeswift as ts
 
 
 
@@ -22,23 +21,16 @@ def runquery(query_name, query_seq, obs_dist):
         for tagr,seqr in zip(reftags, refseqs):
             obs_dist[tagr] = distance.jc69(query_seq, seqr)
 
-    for l in treecore.tree.leaf_node_iter():
-        if l.taxon.label not in obs_dist:
+    for l in treecore.tree.traverse_postorder(internal=False):
+        if l.label not in obs_dist:
             raise ValueError('Taxon {} should be in distances table.'.format(l.taxon.label))
-        if obs_dist[l.taxon.label] == 0:
-            jplace["placements"][0]["p"][0][0] = l.edge.edge_index
+        if obs_dist[l.label] == 0:
+            jplace["placements"][0]["p"][0][0] = l.edge_index
             return jplace
 
     treecore.dp(obs_dist)
-
-    if method_name == "BE":
-        alg = BE(treecore.tree)
-    elif method_name == "FM":
-        alg = FM(treecore.tree)
-    else:
-        alg = OLS(treecore.tree)
-    alg.placement_per_edge(negative_branch)
-    jplace["placements"][0]["p"] = [alg.placement(criterion_name)]
+    treecore.placement_per_edge(negative_branch)
+    jplace["placements"][0]["p"] = [treecore.placement(criterion_name)]
     return jplace
 
 
@@ -85,6 +77,15 @@ if __name__ == "__main__":
     num_thread = int(options.num_thread)
     if not num_thread:
         num_thread = mp.cpu_count()
+
+    if method_name == "FM":
+        k=-2
+    elif method_name == "BE":
+        k=-1
+    elif method_name == "OLS":
+        k=0
+    else:
+        k=-2
 
     if ref_fp:
         if dist_fp:
@@ -133,15 +134,10 @@ if __name__ == "__main__":
                 obs_dist = dict(zip(tags, map(float, dists[1:])))
                 yield (query_name, None, obs_dist)
         queries = read_dismat()
-
-    f = open(tree_fp)
-    tree_string = f.readline()
-    f.close()
     
-    first_read_tree = dy.Tree.get_from_string(tree_string, schema='newick', preserve_underscores=True)
+    first_read_tree = ts.read_tree(tree_fp, schema='newick')
     extended_newick_string = extended_newick(first_read_tree)
-    treecore = Core(first_read_tree)
-
+    treecore = Core(first_read_tree, k)
     pool = mp.Pool(num_thread)
     results = pool.starmap(runquery, queries)
 

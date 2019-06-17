@@ -1,9 +1,8 @@
-
+import numpy as np
 
 # solves two by two Ax=c linear system and returns the optimal values defined by
 # constraints. This is thanks to the convexity of (weighted) least squared error
-def solve2_2(e, a_11, a_12, a_21, a_22, c_1, c_2, negative_branch):
-    edge_length = e.length
+def solve2_2(edge_length, a_11, a_12, a_21, a_22, c_1, c_2, negative_branch):
     det = 1 / (a_11 * a_22 - a_12 * a_21)
     assert det is not 0
     x_1_neg = (a_22 * c_1 - a_12 * c_2) * det
@@ -29,7 +28,4 @@ def solve2_2(e, a_11, a_12, a_21, a_22, c_1, c_2, negative_branch):
         else:
             x_1 = x_1
             x_2 = x_2
-    e.x_1 = x_1
-    e.x_2 = x_2
-    e.x_1_neg = x_1_neg
-    e.x_2_neg = x_2_neg
+    return np.array([[x_1, x_2],[x_1_neg, x_2_neg]])

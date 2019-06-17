@@ -1,136 +1,93 @@
+import numpy as np
+from apples import util
+from scipy.special import binom
+import heapq
+import math
 
 class Core:
-    def __init__(self, tree):
+    def __init__(self, tree, k):
+        self.k = k
         self.tree = tree
-        tree.master_edge = next(tree.postorder_edge_iter())
-        master_edge = self.tree.master_edge
-        self.tree_S_values(master_edge, master_edge.tail_node)
-        self.tree_R_values(master_edge, None, master_edge.head_node, master_edge.tail_node)
 
 
     def dp(self, obs_dist):
-        master_edge = self.tree.master_edge
-        self.observed_S_values(master_edge, master_edge.tail_node, obs_dist)
-        self.observed_R_values(master_edge, None, master_edge.head_node, master_edge.tail_node,obs_dist)
+        self.dpm = np.zeros((2, self.tree.num_nodes(), 3, 3)) # S-R, nodes, tree,  obs
+        self.xs = np.zeros((self.tree.num_nodes(), 2, 2)) #  nodes, neg,  x
+        for node in self.tree.traverse_postorder(): #b=0
+            for a in range(3):
+                if node.is_leaf():
+                    delta = obs_dist[node.label]
+                    self.dpm[0,node.edge_index,0,a] = delta ** (a + self.k)
+                else:
+                    if node != self.tree.root:
+                        for child in node.children:
+                            self.dpm[0,node.edge_index,0,a] += self.dpm[0,child.edge_index,0,a]
+        for node in self.tree.traverse_postorder():
+            for b in range(1,3):
+                for a in range(3):
+                    if node.is_leaf():
+                        self.dpm[0,node.edge_index,b,a] = 0
+                    else:
+                        if node != self.tree.root:
+                            for child in node.children:
+                                for j in range(b+1):
+                                    self.dpm[0,node.edge_index,b,a] += ((child.edge_length) ** j) * binom(b, j) * \
+                                                                          self.dpm[0,child.edge_index,b - j,a]
 
-    def observed_S_values(self, edge, downstream, obs_dist):
-        if downstream.is_leaf():
-            edge.SDd = 0
-            edge.Sd_D = 0
-            edge.Sd_D2 = 0
-            edge.Sd2_D = 0
-            edge.Sd2_D2 = 0
-            edge.SD = obs_dist[downstream.taxon.label]
-            edge.SD2 = edge.SD * edge.SD
-            edge.S1_D = 1 / edge.SD
-            edge.S1_D2 = 1 / (edge.SD * edge.SD)
+        for node in self.tree.traverse_preorder(): #TODO make algorithm linear time for star-tree
+            for b in range(0,3):
+                for a in range(3):
+                    if node != self.tree.root:
+                        for j in range(b + 1):
+                            for sibling in node.parent.children:
+                                if sibling != node:
+                                    self.dpm[1,node.edge_index,b,a] += ((sibling.edge_length) ** j) * binom(b, j) * \
+                                                                          self.dpm[0,sibling.edge_index,b - j,a]
+                            if node.parent != self.tree.root:
+                                self.dpm[1,node.edge_index,b,a] += ((node.parent.edge_length) ** j) * binom(b, j) * \
+                                                                      self.dpm[1,node.parent.edge_index,b - j,a]
 
+    def placement_per_edge(self, negative_branch):
+        dpm = self.dpm
+        tree = self.tree
+        for node in tree.traverse_postorder():
+            if node == tree.root:
+                continue
+            i = node.edge_index
+            a_11 = dpm[1,i,0,0] + dpm[0,i,0,0]
+            a_12 = dpm[1,i,0,0] - dpm[0,i,0,0]
+            a_21 = a_12
+            a_22 = a_11
+            c_1 = dpm[1,i,0,1] + dpm[0,i,0,1] - node.edge_length * dpm[0,i,0,0] - dpm[1,i,1,0] - dpm[0,i,1,0]
+            c_2 = dpm[1,i,0,1] - dpm[0,i,0,1] + node.edge_length * dpm[0,i,0,0] - dpm[1,i,1,0] + dpm[0,i,1,0]
+            self.xs[i] = util.solve2_2(i, a_11, a_12, a_21, a_22, c_1, c_2, negative_branch)
 
-        else:
-            inc = list(downstream.incident_edges())
-            inc = filter(lambda e: e.head_node != self.tree.seed_node and e != edge, inc)
-            edge.SDd, edge.Sd_D, edge.Sd_D2, edge.Sd2_D, edge.Sd2_D2, edge.SD2, edge.SD, edge.S1_D, edge.S1_D2 = 9 * [0]
-            for d1 in inc:
-                d1tips = [d1.head_node, d1.tail_node]
-                d1tips.remove(downstream)
-                if len(d1tips) == 0:
-                    print("error")
-                self.observed_S_values(d1, d1tips[0], obs_dist)
-                edge.SDd += d1.length * d1.SD + d1.SDd
-                edge.Sd_D += d1.length * d1.S1_D + d1.Sd_D
-                edge.Sd_D2 += d1.length * d1.S1_D2 + d1.Sd_D2
-                edge.Sd2_D += d1.S1_D * d1.length * d1.length + d1.Sd2_D + 2 * d1.length * d1.Sd_D
-                edge.Sd2_D2 += d1.S1_D2 * d1.length * d1.length + d1.Sd2_D2 + 2 * d1.length * d1.Sd_D2
-                edge.SD2 += d1.SD2
-                edge.SD += d1.SD
-                edge.S1_D += d1.S1_D
-                edge.S1_D2 += d1.S1_D2
+    def error_per_edge(self, node):
+        dpm = self.dpm
+        xs = self.xs
+        i = node.edge_index
+        return dpm[1,i,0,2] + dpm[0,i,0,2] + dpm[1,i,2,0] + dpm[0,i,2,0] + \
+               2 * (xs[i][0][0] + xs[i][0][1]) * (dpm[1, i, 1, 0] - dpm[1, i, 0, 1]) + \
+               2 * (xs[i][0][0] + node.edge_length - xs[i][0][1]) * (dpm[0, i, 1, 0] - dpm[0, i, 0, 1]) + \
+               (xs[i][0][0] + xs[i][0][1])**2 * dpm[1, i, 0, 0] + (xs[i][0][0] + node.edge_length - xs[i][0][1])**2 * dpm[0, i, 0, 0] - \
+               2 * dpm[0, i, 1, 1] - 2 * dpm[1, i, 1, 1]
 
-    def observed_R_values(self, edge, u1, upstream, downstream, obs_dist):
-        if upstream.is_leaf():
-            edge.RDd = 0
-            edge.Rd_D = 0
-            edge.Rd_D2 = 0
-            edge.Rd2_D = 0
-            edge.Rd2_D2 = 0
-            edge.RD = obs_dist[upstream.taxon.label]
-            edge.RD2 = edge.RD * edge.RD
-            edge.R1_D = 1 / edge.RD
-            edge.R1_D2 = 1 / (edge.RD * edge.RD)
+            #x = np.dot(np.linalg.inv(A),C)
+            #print(x)
 
-        else:
-            edge.RDd = u1.RD * u1.length + u1.RDd
-            edge.Rd_D = u1.length * u1.R1_D + u1.Rd_D
-            edge.Rd_D2 = u1.length * u1.R1_D2 + u1.Rd_D2
-            edge.Rd2_D = u1.R1_D * u1.length * u1.length + u1.Rd2_D + 2 * u1.length * u1.Rd_D
-            edge.Rd2_D2 = u1.R1_D2 * u1.length * u1.length + u1.Rd2_D2 + 2 * u1.length * u1.Rd_D2
-            edge.RD2 = u1.RD2
-            edge.RD = u1.RD
-            edge.R1_D = u1.R1_D
-            edge.R1_D2 = u1.R1_D2
-            inc = list(upstream.incident_edges())
-            u2 = list(filter(lambda e: e.head_node != self.tree.seed_node and e != u1 and e != edge, inc))
-            if len(u2) == 1:
-                edge.RDd += u2[0].SD * u2[0].length + u2[0].SDd
-                edge.Rd_D += u2[0].length * u2[0].S1_D + u2[0].Sd_D
-                edge.Rd_D2 += u2[0].length * u2[0].S1_D2 + u2[0].Sd_D2
-                edge.Rd2_D += u2[0].S1_D * u2[0].length * u2[0].length + u2[0].Sd2_D + 2 * u2[0].length * u2[0].Sd_D
-                edge.Rd2_D2 += u2[0].S1_D2 * u2[0].length * u2[0].length + u2[0].Sd2_D2 + 2 * u2[0].length * u2[0].Sd_D2
-                edge.RD2 += u2[0].SD2
-                edge.RD += u2[0].SD
-                edge.R1_D += u2[0].S1_D
-                edge.R1_D2 += u2[0].S1_D2
+    def placement(self, selection_name):
+        valids = filter(lambda x : x != self.tree.root, self.tree.traverse_postorder())
+        if selection_name == "HYBRID":
+            sm = heapq.nsmallest(math.floor(math.log2(len(self.tree.num_nodes(internal=False)))),
+                                 valids,
+                                 key=lambda e: self.error_per_edge(e))
+            placed_edge = min(sm, key=lambda e: self.xs[e.edge_index][1][0])
+            pendant, relative_distal = self.xs[placed_edge.edge_index][1]
 
-        if not downstream.is_leaf():
-            inc = list(downstream.incident_edges())
-            inc = filter(lambda e: e.head_node != self.tree.seed_node and e != edge, inc)
-            for d1 in inc:
-                d1tips = [d1.head_node, d1.tail_node]
-                d1tips.remove(downstream)
-                self.observed_R_values(d1, edge, downstream, d1tips[0], obs_dist)
-
-    def tree_S_values(self, edge, downstream):
-        if downstream.is_leaf():
-            edge.S = 1
-            edge.Sd = 0
-            edge.Sd2 = 0
-
-        else:
-            inc = list(downstream.incident_edges())
-            inc = filter(lambda e: e.head_node != self.tree.seed_node and e != edge, inc)
-            edge.S, edge.Sd, edge.Sd2 = 3 * [0]
-            for d1 in inc:
-                d1tips = [d1.head_node, d1.tail_node]
-                d1tips.remove(downstream)
-                if len(d1tips) == 0:
-                    print("error")
-                self.tree_S_values(d1, d1tips[0])
-                edge.S += d1.S
-                edge.Sd += d1.S * d1.length + d1.Sd
-                edge.Sd2 += d1.S * d1.length * d1.length + d1.Sd2 + 2 * d1.length * d1.Sd
-
-    def tree_R_values(self, edge, u1, upstream, downstream):
-        if upstream.is_leaf():
-            edge.R = 1
-            edge.Rd = 0
-            edge.Rd2 = 0
-
-
-        else:
-            edge.R = u1.R
-            edge.Rd = u1.R * u1.length + u1.Rd
-            edge.Rd2 = u1.R * u1.length * u1.length + u1.Rd2 + 2 * u1.length * u1.Rd
-            inc = list(upstream.incident_edges())
-            u2 = list(filter(lambda e: e.head_node != self.tree.seed_node and e != u1 and e != edge, inc))
-            if len(u2) == 1:
-                edge.R += u2[0].S
-                edge.Rd += u2[0].S * u2[0].length + u2[0].Sd
-                edge.Rd2 += u2[0].S * u2[0].length * u2[0].length + u2[0].Sd2 + 2 * u2[0].length * u2[0].Sd
-
-        if not downstream.is_leaf():
-            inc = list(downstream.incident_edges())
-            inc = filter(lambda e: e.head_node != self.tree.seed_node and e != edge, inc)
-            for d1 in inc:
-                d1tips = [d1.head_node, d1.tail_node]
-                d1tips.remove(downstream)
-                self.tree_R_values(d1, edge, downstream, d1tips[0])
+        elif selection_name == "ME":
+            placed_edge = min(valids, key=lambda e: self.xs[e.edge_index][1][0])
+            pendant, relative_distal = self.xs[placed_edge.edge_index][1]
+        else:  # selection_name == "MLSE"
+            placed_edge = min(valids, key=lambda e: self.error_per_edge(e))
+            pendant, relative_distal = self.xs[placed_edge.edge_index][1]
+        return [placed_edge.edge_index, 0, 1, placed_edge.edge_length - relative_distal, pendant]
