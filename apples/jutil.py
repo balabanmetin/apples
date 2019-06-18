@@ -29,11 +29,6 @@ def extended_newick(tree):
 
 def _nodeprint(root):
     node_to_str = dict()
-    counter=0
-
-    for node in root.traverse_postorder():
-        node.edge_index = counter
-        counter += 1
 
     for node in root.traverse_postorder():
         if node.is_leaf():

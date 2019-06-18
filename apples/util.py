@@ -33,3 +33,11 @@ def solve2_2(node, a_11, a_12, a_21, a_22, c_1, c_2, negative_branch):
     node.x_2 = x_2
     node.x_1_neg = x_1_neg
     node.x_2_neg = x_2_neg
+
+def index_edges(tree):
+    counter=0
+    for node in tree.traverse_postorder():
+        node.edge_index = counter
+        counter += 1
+        node.valid = True
+    tree.root.valid = False

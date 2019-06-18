@@ -4,7 +4,7 @@ from optparse import OptionParser
 import re
 from apples.Core import Core
 from apples.criteria import OLS, FM, BE
-from apples import readfq, distance
+from apples import readfq, distance, util
 import multiprocessing as mp
 from apples.jutil import extended_newick, join_jplace
 import sys
@@ -25,19 +25,25 @@ def runquery(query_name, query_seq, obs_dist):
 
     for l in treecore.tree.traverse_postorder(internal=False):
         if l.label not in obs_dist:
-            raise ValueError('Taxon {} should be in distances table.'.format(l.taxon.label))
+            raise ValueError('Taxon {} should be in distances table.'.format(l.label))
         if obs_dist[l.label] == 0:
             jplace["placements"][0]["p"][0][0] = l.edge_index
             return jplace
 
-    treecore.dp(obs_dist)
+    if -1 not in obs_dist.values():
+        tc = treecore
+        tc.dp(obs_dist)
+    else:
+        tc = treecore_frag
+        tc.validate_edges(obs_dist)
+        tc.dp_frag(obs_dist)
 
     if method_name == "BE":
-        alg = BE(treecore.tree)
+        alg = BE(tc.tree)
     elif method_name == "FM":
-        alg = FM(treecore.tree)
+        alg = FM(tc.tree)
     else:
-        alg = OLS(treecore.tree)
+        alg = OLS(tc.tree)
     alg.placement_per_edge(negative_branch)
     jplace["placements"][0]["p"] = [alg.placement(criterion_name)]
     return jplace
@@ -139,9 +145,14 @@ if __name__ == "__main__":
     tree_string = f.readline()
     f.close()
     
-    first_read_tree = ts.read_tree(tree_fp, schema='newick')
+    first_read_tree = ts.read_tree(tree_string, schema='newick')
+    util.index_edges(first_read_tree)
     extended_newick_string = extended_newick(first_read_tree)
     treecore = Core(first_read_tree)
+    treecore.init()
+    second_read_tree = ts.read_tree(tree_string, schema='newick')
+    util.index_edges(second_read_tree)
+    treecore_frag = Core(second_read_tree)
 
     pool = mp.Pool(num_thread)
     results = pool.starmap(runquery, queries)
