@@ -121,10 +121,11 @@ if __name__ == "__main__":
         else:
             f = open(extended_ref_fp)
             setreftags = set(reftags)
+            translation = str.maketrans('abcdefghijklmnopqrstuvwxyz', '-'*26)
             for name, seq, qual in readfq.readfq(f):
                 if name not in setreftags:
                     querytags.append(name)
-                    queryseqs.append(np.frombuffer(seq.encode(), dtype='S1'))
+                    queryseqs.append(np.frombuffer(seq.translate(translation).encode(), dtype='S1'))
             num_query = len(querytags)
             f.close()
 
