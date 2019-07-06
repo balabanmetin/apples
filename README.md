@@ -19,7 +19,7 @@ bioRxiv 475566; doi: https://doi.org/10.1101/475566](https://doi.org/10.1101/475
 Requirements
 ------------------------------------
 1. Python: Version >= 3.0
-2. Dendropy: Version >= 4.0.0
+2. Treeswift
 
 ------------------------------------
 Installation on Linux, Mac OSX, or Windows
@@ -27,13 +27,13 @@ Installation on Linux, Mac OSX, or Windows
 
 Install Dendropy using the following command in the command-line:
 
-`pip3 install --user dendropy`
+`pip install --user treeswift`
 
 Then, clone the repository using the following command:
 
 `git clone https://github.com/balabanmetin/apples.git`
 
-Once the repository is downloaded, make [apples.py](run_apples.py) executable.
+Once the repository is downloaded, make [run_apples.py](run_apples.py) executable.
 
 
 ---------------------------------------------
@@ -42,7 +42,7 @@ Getting Started with APPLES
 
 For listing all options, run the following command:
 
-`apples.py -h`
+`run_apples.py -h`
 
 ---------------------------------------------
 Input & Output Specification
@@ -54,13 +54,13 @@ APPLES require a reference alignment and a query alignment. All species in the b
 
 You can run APPLES with the following command on the example input alignment dataset:
 
-`apples.py -s data/ref.fa -q data/query.fa -t data/backbone.nwk`
+`run_apples.py -s data/ref.fa -q data/query.fa -t data/backbone.nwk`
 
 #### Input a distance matrix
 The format for distance matrix is a tab delimited csv file with column and row headers. Rows should represent query sequences and columns should represent reference sequences. You can find an example distance matrix for ten query sequences under [data/dist.mat](data/dist.mat). 
 You can run APPLES on the example distance matrix by running the following command:
 
-`apples.py -d data/dist.mat -t data/backbone.nwk`
+`run_apples.py -d data/dist.mat -t data/backbone.nwk`
 
 #### Output
 Output is a jplace file containing placement results for all queries. For more information about jplace files, please refer to Matsen et. al. (2012) [https://doi.org/10.1371/journal.pone.0031009](https://doi.org/10.1371/journal.pone.0031009). The output file can be specified using `-o` command. When output file is not specified, the result will be printed to the standard output.
