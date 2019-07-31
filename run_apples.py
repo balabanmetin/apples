@@ -106,7 +106,7 @@ if __name__ == "__main__":
         f = open(ref_fp)
         for name, seq, qual in readfq.readfq(f):
             reftags.append(name)
-            refseqs.append(np.frombuffer(seq.encode(), dtype='S1'))
+            refseqs.append(np.frombuffer(seq.upper().encode(), dtype='S1'))
         f.close()
 
         if query_fp and extended_ref_fp:
@@ -115,7 +115,7 @@ if __name__ == "__main__":
             f = open(query_fp)
             for name, seq, qual in readfq.readfq(f):
                 querytags.append(name)
-                queryseqs.append(np.frombuffer(seq.encode(), dtype='S1'))
+                queryseqs.append(np.frombuffer(seq.upper().encode(), dtype='S1'))
             f.close()
             num_query = len(querytags)
         else:
