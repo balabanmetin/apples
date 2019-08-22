@@ -8,11 +8,12 @@ APPLES stands for `Accurate Phylogenetic Placement with LEast Squares` and addre
 
 
 ------------------------------------
-Preprint
+Publication
 ------------------------------------
 
-[APPLES: Distance-based Phylogenetic Placement for Scalable and Assembly-free Sample Identification,
-Metin Balaban, Shahab Sarmashghi, Siavash Mirarab,
+* Balaban, Metin, Shahab Sarmashghi, and Siavash Mirarab. “APPLES: Fast Distance-Based Phylogenetic Placement.” Systematic Biology, in press, (2019).
+
+* Also available in preprint: [APPLES: Distance-based Phylogenetic Placement for Scalable and Assembly-free Sample Identification, Metin Balaban, Shahab Sarmashghi, Siavash Mirarab,
 bioRxiv 475566; doi: https://doi.org/10.1101/475566](https://doi.org/10.1101/475566)
 
 ------------------------------------
@@ -25,7 +26,7 @@ Requirements
 Installation on Linux, Mac OSX, or Windows
 ------------------------------------
 
-Install Dendropy using the following command in the command-line:
+Install TreeSwift using the following command in the command-line:
 
 `pip install --user treeswift`
 
@@ -49,6 +50,12 @@ Input & Output Specification
 ---------------------------------------------
 
 Input reference (backbone) tree must be in newick format. APPLES can perform placements based on FASTA alignments of __nucleotide sequences__ (functionality for amino acid sequences will be added soon) or a distance table.
+
+APPLES input can be either
+
+* An alignment of query sequences to the backbone. In this case, by default, hamming distances will be computed using pairwise comparison and will be then corrected using then JC69 model. 
+* A distance matrix computed using other tools. 
+
 #### Input an alignment 
 APPLES require a reference alignment and a query alignment. All species in the backbone tree must have a corresponding sequence in the reference alignment. You can find an example reference alignment and query alignment for ten query sequences under [data/ref.fa](data/ref.fa) and [data/query.fa](data/query.fa) respectively.
 
