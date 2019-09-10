@@ -4,7 +4,7 @@ import numpy as np
 def jc69(a2,b2):
     nondash=np.logical_and(a2!=b'-',b2!=b'-')
     valid = np.count_nonzero(nondash)
-    if not valid or valid/len(nondash) < 0.001:
+    if not valid < 20:
         return -1.0 #treat as missing data
     p = np.count_nonzero(np.logical_and(a2!=b2, nondash))*1.0/valid
     if (p - np.finfo(float).eps < 0):

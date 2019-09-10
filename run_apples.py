@@ -73,6 +73,9 @@ if __name__ == "__main__":
                       help="name of the placement selection criterion (MLSE, ME, or HYBRID", metavar="CRITERIA")
     parser.add_option("-n", "--negative", dest="negative_branch", action='store_true',
                       help="relaxes positivity constraint on new branch lengths, i.e. allows negative branch lengths")
+    parser.add_option("-i", "--ignore-lowercase", dest="ignore_lowercase", action='store_true',
+                      help="replaces lowercase characters with dashes in extended alignment")
+    #parser.add_option("-p", "--protein", dest="protein_seqs", action='store_true',
     #parser.add_option("-p", "--protein", dest="protein_seqs", action='store_true',
     #                  help="input sequences are protein sequences")
     parser.add_option("-T", "--threads", dest="num_thread", default="0",
@@ -88,6 +91,7 @@ if __name__ == "__main__":
     method_name = options.method_name
     criterion_name = options.criterion_name
     negative_branch = options.negative_branch
+    ignore_lowercase = options.ignore_lowercase
     #protein_seqs = options.protein_seqs
     num_thread = int(options.num_thread)
     if not num_thread:
@@ -125,7 +129,10 @@ if __name__ == "__main__":
             for name, seq, qual in readfq.readfq(f):
                 if name not in setreftags:
                     querytags.append(name)
-                    queryseqs.append(np.frombuffer(seq.translate(translation).encode(), dtype='S1'))
+                    if ignore_lowercase:
+                        queryseqs.append(np.frombuffer(seq.translate(translation).encode(), dtype='S1'))
+                    else:
+                        queryseqs.append(np.frombuffer(seq.upper().encode(), dtype='S1'))
             num_query = len(querytags)
             f.close()
 
