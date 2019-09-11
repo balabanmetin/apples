@@ -20,21 +20,14 @@ bioRxiv 475566; doi: https://doi.org/10.1101/475566](https://doi.org/10.1101/475
 Requirements
 ------------------------------------
 1. Python: Version >= 3.0
-2. Treeswift
 
 ------------------------------------
 Installation on Linux, Mac OSX, or Windows
 ------------------------------------
 
-Install TreeSwift using the following command in the command-line:
+Install APPLES using the following command in the command-line:
 
-`pip install --user treeswift`
-
-Then, clone the repository using the following command:
-
-`git clone https://github.com/balabanmetin/apples.git`
-
-Once the repository is downloaded, make [run_apples.py](run_apples.py) executable.
+`pip install apples`
 
 
 ---------------------------------------------
@@ -57,7 +50,7 @@ APPLES input can be either
 * A distance matrix computed using other tools. 
 
 #### Input an alignment 
-APPLES require a reference alignment and a query alignment. All species in the backbone tree must have a corresponding sequence in the reference alignment. You can find an example reference alignment and query alignment for ten query sequences under [data/ref.fa](data/ref.fa) and [data/query.fa](data/query.fa) respectively.
+APPLES require a reference alignment and a query alignment. All species in the backbone tree must have a corresponding sequence in the reference alignment. You can find an example reference alignment and query alignment for ten query sequences under [data/ref.fa](data/ref.fa) and [data/query.fa](data/query.fa) respectively. 
 
 You can run APPLES with the following command on the example input alignment dataset:
 
