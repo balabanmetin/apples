@@ -21,7 +21,7 @@ class Algorithm(ABC):
         valids = filter(lambda x: x.valid, self.tree.traverse_postorder())
 
         if selection_name == "HYBRID":
-            sm = heapq.nsmallest(math.floor(math.log2(len(self.tree.num_nodes(internal=False)))),
+            sm = heapq.nsmallest(math.floor(math.log2(self.tree.num_nodes(internal=False))),
                                  valids,
                                  key=lambda e: self.error_per_edge(e))
             placed_edge = min(sm, key=lambda e: e.x_1_neg)
