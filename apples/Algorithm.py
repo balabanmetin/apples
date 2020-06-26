@@ -37,4 +37,4 @@ class Algorithm(ABC):
             pendant = placed_edge.x_1
             relative_distal = placed_edge.x_2
 
-        return [placed_edge.edge_index, 0, 1, placed_edge.edge_length - relative_distal, pendant]
+        return [placed_edge.edge_index, self.error_per_edge(placed_edge), 1, placed_edge.edge_length - relative_distal, pendant]

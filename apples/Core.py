@@ -7,6 +7,81 @@ class Core:
         self.tree_S_values()
         self.tree_R_values()
 
+    def bme_init(self):
+
+        # post order traversal to compute S values (away from root)
+        for node in self.tree.traverse_postorder():
+            if node.is_leaf():
+                node.BS = 1
+                node.BSd = 0
+                node.BSd2 = 0
+
+            else:
+                node.BS, node.BSd, node.BSd2 = 3 * [0]
+                for child in node.children:
+                    node.BS += 0.5*child.BS
+                    node.BSd += 0.5*(child.BS * child.edge_length + child.BSd)
+                    node.BSd2 += 0.5*(child.BS * child.edge_length * child.edge_length + child.BSd2 + 2 * child.edge_length * child.BSd)
+
+        # preorder traversal to compute R values (closer to root)
+        for node in self.tree.traverse_preorder():
+            if node == self.tree.root:
+                continue
+            node.BR, node.BRd, node.BRd2 = 3 * [0]
+            for sibling in node.parent.children:
+                if sibling != node:
+                    node.BR += 0.5*(sibling.BS)
+                    node.BRd += 0.5*(sibling.BS * sibling.edge_length + sibling.BSd)
+                    node.BRd2 += 0.5*(sibling.BS * sibling.edge_length * sibling.edge_length + sibling.BSd2 + \
+                                2 * sibling.edge_length * sibling.BSd)
+                    if node.parent == self.tree.root and self.tree.root.num_children() == 2:
+                        node.BR += 0.5 * (sibling.BS)
+                        node.BRd += 0.5 * (sibling.BS * sibling.edge_length + sibling.BSd)
+                        node.BRd2 += 0.5 * (sibling.BS * sibling.edge_length * sibling.edge_length + sibling.BSd2 + \
+                                            2 * sibling.edge_length * sibling.BSd)
+            if node.parent != self.tree.root:
+                node.BR += 0.5*(node.parent.BR)
+                node.BRd += 0.5*(node.parent.BR * node.parent.edge_length + node.parent.BRd)
+                node.BRd2 += 0.5*(node.parent.BR * node.parent.edge_length * node.parent.edge_length + node.parent.BRd2 + \
+                           2 * node.parent.edge_length * node.parent.BRd)
+
+
+    def bme_dp(self, obs_dist):
+        for node in self.tree.traverse_postorder():
+            if node.is_leaf():
+                node.BSDd = 0
+                node.BSD = obs_dist[node.label]
+                node.BSD2 = node.BSD * node.BSD
+
+            else:
+                node.BSDd, node.BSD2, node.BSD = 3 * [0]
+                for child in node.children:
+                    node.BSDd += 0.5*(child.edge_length * child.BSD + child.BSDd)
+                    node.BSD2 += 0.5*(child.BSD2)
+                    node.BSD += 0.5*(child.BSD)
+
+        for node in self.tree.traverse_preorder():
+            if node == self.tree.root:
+                continue
+            node.BRDd, node.BRD2, node.BRD = 3 * [0]
+            for sibling in node.parent.children:
+                if sibling != node:
+                    node.BRDd += 0.5*(sibling.BSD * sibling.edge_length + sibling.BSDd)
+                    node.BRD2 += 0.5*sibling.BSD2
+                    node.BRD += 0.5*sibling.BSD
+
+                    if node.parent == self.tree.root and self.tree.root.num_children() == 2:
+                        node.BRDd += 0.5 * (sibling.BSD * sibling.edge_length + sibling.BSDd)
+                        node.BRD2 += 0.5 * sibling.BSD2
+                        node.BRD += 0.5 * sibling.BSD
+
+            if node.parent != self.tree.root:
+                node.BRDd += 0.5*(node.parent.BRD * node.parent.edge_length + node.parent.BRDd)
+                node.BRD2 += 0.5*node.parent.BRD2
+                node.BRD += 0.5*node.parent.BRD
+
+
+
 
     def dp(self, obs_dist):
         self.observed_S_values(obs_dist)
@@ -76,6 +151,7 @@ class Core:
                 node.S = 1
                 node.Sd = 0
                 node.Sd2 = 0
+
 
             else:
                 node.S, node.Sd, node.Sd2 = 3 * [0]

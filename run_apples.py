@@ -3,7 +3,7 @@
 from optparse import OptionParser
 import re
 from apples.Core import Core
-from apples.criteria import OLS, FM, BE
+from apples.criteria import OLS, BME, FM, BE
 from apples import readfq, distance, util
 import multiprocessing as mp
 from apples.jutil import extended_newick, join_jplace
@@ -26,24 +26,31 @@ def runquery(query_name, query_seq, obs_dist):
     for l in treecore.tree.traverse_postorder(internal=False):
         if l.label not in obs_dist:
             raise ValueError('Taxon {} should be in distances table.'.format(l.label))
-        if obs_dist[l.label] == 0:
+        if obs_dist[l.label] >= 0 and obs_dist[l.label] < 0.0000001:
             jplace["placements"][0]["p"][0][0] = l.edge_index
             return jplace
 
-    if -1 not in obs_dist.values():
+    if method_name == "BME":
         tc = treecore
-        tc.dp(obs_dist)
-    else:
-        tc = treecore_frag
-        tc.validate_edges(obs_dist)
-        tc.dp_frag(obs_dist)
+        tc.bme_dp(obs_dist)
+        alg = BME(tc.tree)
 
-    if method_name == "BE":
-        alg = BE(tc.tree)
-    elif method_name == "FM":
-        alg = FM(tc.tree)
     else:
-        alg = OLS(tc.tree)
+        if -1 not in obs_dist.values():
+            tc = treecore
+            tc.dp(obs_dist)
+        else:
+            tc = treecore_frag
+            tc.validate_edges(obs_dist)
+            tc.dp_frag(obs_dist)
+
+        if method_name == "BE":
+            alg = BE(tc.tree)
+        elif method_name == "FM":
+            alg = FM(tc.tree)
+        else:
+            alg = OLS(tc.tree)
+
     alg.placement_per_edge(negative_branch)
     jplace["placements"][0]["p"] = [alg.placement(criterion_name)]
     return jplace
@@ -68,7 +75,7 @@ if __name__ == "__main__":
                       help="path to the query alignment file (FASTA), containing query sequences",
                       metavar="FILE")
     parser.add_option("-m", "--method", dest="method_name", default="FM",
-                      help="name of the weighted least squares method (OLS, FM, or BE)", metavar="METHOD")
+                      help="name of the weighted least squares method (OLS, BME, FM, or BE)", metavar="METHOD")
     parser.add_option("-c", "--criterion", dest="criterion_name", default="MLSE",
                       help="name of the placement selection criterion (MLSE, ME, or HYBRID", metavar="CRITERIA")
     parser.add_option("-n", "--negative", dest="negative_branch", action='store_true',
@@ -151,6 +158,7 @@ if __name__ == "__main__":
     extended_newick_string = extended_newick(first_read_tree)
     treecore = Core(first_read_tree)
     treecore.init()
+    treecore.bme_init()
     second_read_tree = ts.read_tree(tree_string, schema='newick')
     util.index_edges(second_read_tree)
     treecore_frag = Core(second_read_tree)

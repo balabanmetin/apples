@@ -4,6 +4,7 @@ from apples import util
 
 # Glossary
 # OLS: Ordinary Least Squares
+# BME: Balanced minimum evolution
 # FM: Fitch-Margoliash --Least Squares with \delta^2 scaling
 # BE: Beyer --Least Squares with \delta scaling
 
@@ -35,6 +36,35 @@ class OLS(Algorithm):
             2 * (node.edge_length + node.x_1 - node.x_2) * node.SD
         E = -2 * node.RDd - 2 * node.SDd
         F = node.Rd2 + node.Sd2
+        return A + B + C + D + E + F
+
+
+class BME(Algorithm):
+
+    # computes all alternative BME placements
+    def placement_per_edge(self, negative_branch):
+        for node in filter(lambda x: x.valid, self.tree.traverse_postorder()):
+            a_11 = node.BR + node.BS
+            a_12 = node.BR - node.BS
+            a_21 = a_12
+            a_22 = a_11
+            c_1 = node.BRD + node.BSD - node.edge_length * node.BS - node.BRd - node.BSd
+            c_2 = node.BRD - node.BSD + node.edge_length * node.BS - node.BRd + node.BSd
+            util.solve2_2(node, a_11, a_12, a_21, a_22, c_1, c_2, negative_branch)
+
+    # computes BME error (Q value) for a given edge
+    @staticmethod
+    def error_per_edge(node):
+        assert node.valid
+        A = node.BRD2 + node.BSD2
+        B = 2 * (node.x_1 + node.x_2) * node.BRd + \
+            2 * (node.edge_length + node.x_1 - node.x_2) * node.BSd
+        C = (node.x_1 + node.x_2) ** 2 * node.BR + \
+            (node.edge_length + node.x_1 - node.x_2) ** 2 * node.BS
+        D = -2 * (node.x_1 + node.x_2) * node.BRD - \
+            2 * (node.edge_length + node.x_1 - node.x_2) * node.BSD
+        E = -2 * node.BRDd - 2 * node.BSDd
+        F = node.BRd2 + node.BSd2
         return A + B + C + D + E + F
 
 
