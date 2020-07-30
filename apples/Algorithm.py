@@ -16,7 +16,7 @@ class Algorithm(ABC):
     def error_per_edge(edge):
         pass
 
-    def placement(self, selection_name):
+    def placement(self, selection_name, query_name):
 
         valids = filter(lambda x: x.valid, self.tree.traverse_postorder())
 
@@ -24,17 +24,17 @@ class Algorithm(ABC):
             sm = heapq.nsmallest(math.floor(math.log2(self.tree.num_nodes(internal=False))),
                                  valids,
                                  key=lambda e: self.error_per_edge(e))
-            placed_edge = min(sm, key=lambda e: e.x_1_neg)
-            pendant = placed_edge.x_1_neg
-            relative_distal = placed_edge.x_2_neg
+            placed_edge = min(sm, key=lambda e: e.x_1)
+            pendant = placed_edge.x_1
+            relative_distal = placed_edge.x_2
 
         elif selection_name == "ME":
-            placed_edge = min(valids, key=lambda e: e.x_1_neg)
-            pendant = placed_edge.x_1_neg
-            relative_distal = placed_edge.x_2_neg
+            placed_edge = min(valids, key=lambda e: e.x_1)
+            pendant = placed_edge.x_1
+            relative_distal = placed_edge.x_2
         else:  # selection_name == "MLSE"
             placed_edge = min(valids, key=lambda e: self.error_per_edge(e))
             pendant = placed_edge.x_1
             relative_distal = placed_edge.x_2
 
-        return [placed_edge.edge_index, 0, 1, placed_edge.edge_length - relative_distal, pendant]
+        return [placed_edge.edge_index, self.error_per_edge(placed_edge), 1, placed_edge.edge_length - relative_distal, pendant]

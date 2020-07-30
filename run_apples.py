@@ -29,7 +29,27 @@ def runquery(query_name, query_seq, obs_dist):
         if obs_dist[l.label] == 0:
             jplace["placements"][0]["p"][0][0] = l.edge_index
             return jplace
+    
+    # remove distances larger than threshold, starting from the largest
+    tx=0
+#    for k,v in sorted(obs_dist.items(), key=lambda kv: kv[1], reverse=True):
+#        if tx >= len(obs_dist) - 200 or v <= filt_threshold:
+#            break
+#        else:
+#            obs_dist[k] = -1
+#            tx += 1
 
+    for k,v in sorted(obs_dist.items(), key=lambda kv: kv[1]):
+        if v == -1:
+            continue
+        tx += 1
+        if tx > base_observation_threshold and v > filt_threshold:
+            obs_dist[k] = -1
+    if tx < 2:
+        sys.stderr.write('Taxon {} cannot be placed. At least two non-infinity distances should be observed to place a taxa. Placing on root.\n'.format(query_name))
+        jplace["placements"][0]["p"][0][0] = -1
+        return jplace
+  
     if -1 not in obs_dist.values():
         tc = treecore
         tc.dp(obs_dist)
@@ -45,7 +65,7 @@ def runquery(query_name, query_seq, obs_dist):
     else:
         alg = OLS(tc.tree)
     alg.placement_per_edge(negative_branch)
-    jplace["placements"][0]["p"] = [alg.placement(criterion_name)]
+    jplace["placements"][0]["p"] = [alg.placement(criterion_name,query_name)]
     return jplace
 
 
@@ -77,6 +97,11 @@ if __name__ == "__main__":
     #                  help="input sequences are protein sequences")
     parser.add_option("-T", "--threads", dest="num_thread", default="0",
                       help="number of cores used in placement. 0 to use all cores in the running machine", metavar="NUMBER")
+    parser.add_option("-f", "--filter", dest="filt_threshold", default="5",
+                      help="ignores distances higher than the given threshold. Use when long distances have a high bias or variance.", metavar="NUMBER")
+    parser.add_option("-b", "--base", dest="base_observation_threshold", default="300",
+                      help="minimum number of observations kept for each query ignoring the filter threshold.", metavar="NUMBER")
+
 
     (options, args) = parser.parse_args()
     tree_fp = options.tree_fp
@@ -90,6 +115,9 @@ if __name__ == "__main__":
     negative_branch = options.negative_branch
     #protein_seqs = options.protein_seqs
     num_thread = int(options.num_thread)
+    filt_threshold = float(options.filt_threshold)
+    base_observation_threshold = float(options.base_observation_threshold)
+    
     if not num_thread:
         num_thread = mp.cpu_count()
 

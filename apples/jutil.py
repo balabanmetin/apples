@@ -1,12 +1,14 @@
 
 def join_jplace(lst):
+    result = lst[0]
     if len(lst) == 1:
-        return lst[0]
+        if result["placements"][0]["p"][0][0] == -1:
+            result["placements"] = []
     else:
-        result = lst[0]
         for i in range(1,len(lst)):
-            result["placements"] = result["placements"] + lst[i]["placements"]
-        return result
+            if lst[i]["placements"][0]["p"][0][0] != -1:
+                result["placements"] = result["placements"] + lst[i]["placements"]
+    return result
 
 def extended_newick(tree):
     """Newick printing algorithm is based on treeswift"""
