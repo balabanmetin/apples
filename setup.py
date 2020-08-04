@@ -2,7 +2,7 @@ from setuptools import setup,find_packages
 
 setup(
         name='apples',    # This is the name of your PyPI-package.
-        version='1.2.5',    # Update the version number for new releases
+        version='1.3.0',    # Update the version number for new releases
         scripts=['run_apples.py',], # The name of your scipt, and also the command you'll be using for calling it
         description='APPLES: a distance-based phylogenetic placement tool',
         long_description='APPLES stands for Accurate Phylogenetic Placement\
