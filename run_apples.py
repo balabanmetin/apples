@@ -13,14 +13,12 @@ import numpy as np
 import treeswift as ts
 
 
-
-
-def runquery(query_name, query_seq, obs_dist):
-    jplace=dict()
-    jplace["placements"] = [{"p":[[0,0,1,0,0]] ,"n":[query_name]}]
+def runquery(treecore, treecore_frag, options, query_name, query_seq, obs_dist, refs):
+    jplace = dict()
+    jplace["placements"] = [{"p": [[0, 0, 1, 0, 0]], "n": [query_name]}]
     if not obs_dist:
         obs_dist = {query_name: 0}
-        for tagr,seqr in zip(reftags, refseqs):
+        for tagr, seqr in refs:
             obs_dist[tagr] = distance.jc69(query_seq, seqr)
 
     for l in treecore.tree.traverse_postorder(internal=False):
@@ -29,27 +27,28 @@ def runquery(query_name, query_seq, obs_dist):
         if obs_dist[l.label] == 0:
             jplace["placements"][0]["p"][0][0] = l.edge_index
             return jplace
-    
-    # remove distances larger than threshold, starting from the largest
-    tx=0
-#    for k,v in sorted(obs_dist.items(), key=lambda kv: kv[1], reverse=True):
-#        if tx >= len(obs_dist) - 200 or v <= filt_threshold:
-#            break
-#        else:
-#            obs_dist[k] = -1
-#            tx += 1
 
-    for k,v in sorted(obs_dist.items(), key=lambda kv: kv[1]):
+    # remove distances larger than threshold, starting from the largest
+    tx = 0
+    #    for k,v in sorted(obs_dist.items(), key=lambda kv: kv[1], reverse=True):
+    #        if tx >= len(obs_dist) - 200 or v <= filt_threshold:
+    #            break
+    #        else:
+    #            obs_dist[k] = -1
+    #            tx += 1
+
+    for k, v in sorted(obs_dist.items(), key=lambda kv: kv[1]):
         if v == -1:
             continue
         tx += 1
-        if tx > base_observation_threshold and v > filt_threshold:
+        if tx > options.base_observation_threshold and v > options.filt_threshold:
             obs_dist[k] = -1
     if tx < 2:
-        sys.stderr.write('Taxon {} cannot be placed. At least two non-infinity distances should be observed to place a taxa. Placing on root.\n'.format(query_name))
+        sys.stderr.write('Taxon {} cannot be placed. At least two non-infinity distances '
+                         'should be observed to place a taxa. Placing on root.\n'.format(query_name))
         jplace["placements"][0]["p"][0][0] = -1
         return jplace
-  
+
     if -1 not in obs_dist.values():
         tc = treecore
         tc.dp(obs_dist)
@@ -58,14 +57,14 @@ def runquery(query_name, query_seq, obs_dist):
         tc.validate_edges(obs_dist)
         tc.dp_frag(obs_dist)
 
-    if method_name == "BE":
+    if options.method_name == "BE":
         alg = BE(tc.tree)
-    elif method_name == "FM":
+    elif options.method_name == "FM":
         alg = FM(tc.tree)
     else:
         alg = OLS(tc.tree)
-    alg.placement_per_edge(negative_branch)
-    jplace["placements"][0]["p"] = [alg.placement(criterion_name,query_name)]
+    alg.placement_per_edge(options.negative_branch)
+    jplace["placements"][0]["p"] = [alg.placement(options.criterion_name, query_name)]
     return jplace
 
 
@@ -82,7 +81,8 @@ if __name__ == "__main__":
                       help="path to the reference alignment file (FASTA), containing reference sequences",
                       metavar="FILE")
     parser.add_option("-x", "--extendedref", dest="extended_ref_fp",
-                      help="path to the extened reference alignment file (FASTA), containing reference and query sequences",
+                      help="path to the extened reference alignment file (FASTA), "
+                           "containing reference and query sequences",
                       metavar="FILE")
     parser.add_option("-q", "--query", dest="query_fp",
                       help="path to the query alignment file (FASTA), containing query sequences",
@@ -93,36 +93,30 @@ if __name__ == "__main__":
                       help="name of the placement selection criterion (MLSE, ME, or HYBRID", metavar="CRITERIA")
     parser.add_option("-n", "--negative", dest="negative_branch", action='store_true',
                       help="relaxes positivity constraint on new branch lengths, i.e. allows negative branch lengths")
-    #parser.add_option("-p", "--protein", dest="protein_seqs", action='store_true',
+    # parser.add_option("-p", "--protein", dest="protein_seqs", action='store_true',
     #                  help="input sequences are protein sequences")
     parser.add_option("-T", "--threads", dest="num_thread", default="0",
-                      help="number of cores used in placement. 0 to use all cores in the running machine", metavar="NUMBER")
+                      help="number of cores used in placement. "
+                           "0 to use all cores in the running machine", metavar="NUMBER")
     parser.add_option("-f", "--filter", dest="filt_threshold", default="5",
-                      help="ignores distances higher than the given threshold. Use when long distances have a high bias or variance.", metavar="NUMBER")
-    parser.add_option("-b", "--base", dest="base_observation_threshold", default="300",
-                      help="minimum number of observations kept for each query ignoring the filter threshold.", metavar="NUMBER")
-
+                      help="ignores distances higher than the given threshold. "
+                           "Use when long distances have a high bias or variance.", metavar="NUMBER")
+    parser.add_option("-b", "--base", dest="base_observation_threshold", default="99999999999",
+                      help="minimum number of observations kept for "
+                           "each query ignoring the filter threshold.", metavar="NUMBER")
 
     (options, args) = parser.parse_args()
-    tree_fp = options.tree_fp
-    dist_fp = options.dist_fp
-    ref_fp = options.ref_fp
-    output_fp = options.output_fp
-    query_fp = options.query_fp
-    extended_ref_fp = options.extended_ref_fp
-    method_name = options.method_name
-    criterion_name = options.criterion_name
-    negative_branch = options.negative_branch
-    #protein_seqs = options.protein_seqs
-    num_thread = int(options.num_thread)
-    filt_threshold = float(options.filt_threshold)
-    base_observation_threshold = float(options.base_observation_threshold)
-    
-    if not num_thread:
-        num_thread = mp.cpu_count()
 
-    if ref_fp:
-        if dist_fp:
+    # protein_seqs = options.protein_seqs
+    options.num_thread = int(options.num_thread)
+    options.filt_threshold = float(options.filt_threshold)
+    options.base_observation_threshold = float(options.base_observation_threshold)
+
+    if not options.num_thread:
+        options.num_thread = mp.cpu_count()
+
+    if options.ref_fp:
+        if options.dist_fp:
             raise ValueError('Input should be either an alignment or a distance matrix, but not both!')
 
         reftags = []
@@ -131,25 +125,25 @@ if __name__ == "__main__":
         queryseqs = []
         num_query = 0
 
-        f = open(ref_fp)
+        f = open(options.ref_fp)
         for name, seq, qual in readfq.readfq(f):
             reftags.append(name)
             refseqs.append(np.frombuffer(seq.upper().encode(), dtype='S1'))
         f.close()
 
-        if query_fp and extended_ref_fp:
+        if options.query_fp and options.extended_ref_fp:
             raise ValueError('Input should be either an extended alignment or a query alignment, but not both!')
-        if query_fp:
-            f = open(query_fp)
+        if options.query_fp:
+            f = open(options.query_fp)
             for name, seq, qual in readfq.readfq(f):
                 querytags.append(name)
                 queryseqs.append(np.frombuffer(seq.upper().encode(), dtype='S1'))
             f.close()
             num_query = len(querytags)
         else:
-            f = open(extended_ref_fp)
+            f = open(options.extended_ref_fp)
             setreftags = set(reftags)
-            translation = str.maketrans('abcdefghijklmnopqrstuvwxyz', '-'*26)
+            translation = str.maketrans('abcdefghijklmnopqrstuvwxyz', '-' * 26)
             for name, seq, qual in readfq.readfq(f):
                 if name not in setreftags:
                     querytags.append(name)
@@ -157,23 +151,32 @@ if __name__ == "__main__":
             num_query = len(querytags)
             f.close()
 
-        queries = zip(querytags, queryseqs, num_query*[None])
+        def set_queries(querytags, queryseqs):
+            for querytags, queryseqs in zip(querytags, queryseqs):
+                yield (treecore, treecore_frag, options, querytags, queryseqs, None, zip(reftags, refseqs))
+
+
+        queries = set_queries(querytags, queryseqs)
 
     else:
-        f = open(dist_fp)
+        f = open(options.dist_fp)
+
+
         def read_dismat(f):
             tags = list(re.split("\s+", f.readline().rstrip()))[1:]
             for line in f.readlines():
                 dists = list(re.split("\s+", line.strip()))
                 query_name = dists[0]
                 obs_dist = dict(zip(tags, map(float, dists[1:])))
-                yield (query_name, None, obs_dist)
+                yield (treecore, treecore_frag, options, query_name, None, obs_dist, None)
+
+
         queries = read_dismat(f)
 
-    f = open(tree_fp)
+    f = open(options.tree_fp)
     tree_string = f.readline()
     f.close()
-    
+
     first_read_tree = ts.read_tree(tree_string, schema='newick')
     util.index_edges(first_read_tree)
     extended_newick_string = extended_newick(first_read_tree)
@@ -183,17 +186,17 @@ if __name__ == "__main__":
     util.index_edges(second_read_tree)
     treecore_frag = Core(second_read_tree)
 
-    pool = mp.Pool(num_thread)
+    pool = mp.Pool(options.num_thread)
     results = pool.starmap(runquery, queries)
 
     result = join_jplace(results)
     result["tree"] = extended_newick_string
-    result["metadata"] = {"invocation":" ".join(sys.argv)}
+    result["metadata"] = {"invocation": " ".join(sys.argv)}
     result["fields"] = ["edge_num", "likelihood", "like_weight_ratio", "distal_length", "pendant_length"]
     result["version"] = 3
 
-    if output_fp:
-        f = open(output_fp, "w")
+    if options.output_fp:
+        f = open(options.output_fp, "w")
     else:
         f = sys.stdout
     f.write(json.dumps(result, sort_keys=True, indent=4))
