@@ -11,10 +11,8 @@ APPLES stands for `Accurate Phylogenetic Placement with LEast Squares` and addre
 Publication
 ------------------------------------
 
-* Balaban, Metin, Shahab Sarmashghi, and Siavash Mirarab. “APPLES: Fast Distance-Based Phylogenetic Placement.” Systematic Biology, in press, (2019).
+* Metin Balaban, Shahab Sarmashghi, and Siavash Mirarab. “APPLES: Scalable Distance-Based Phylogenetic Placement with or without Alignments.” Systematic Biology 69, no. 3 (2020): 566–78. [https://doi.org/10.1093/sysbio/syz063](https://doi.org/10.1093/sysbio/syz063)
 
-* Also available in preprint: [APPLES: Distance-based Phylogenetic Placement for Scalable and Assembly-free Sample Identification, Metin Balaban, Shahab Sarmashghi, Siavash Mirarab,
-bioRxiv 475566; doi: https://doi.org/10.1101/475566](https://doi.org/10.1101/475566)
 
 ------------------------------------
 Requirements
