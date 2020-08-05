@@ -72,3 +72,12 @@ Backbone tree provided to APPLES has to have its branch lengths estimated using 
 Then perform placement on the new tree:
 
 `run_apples.py -s ref.fa -q query.fa -t minimum_evo_backbone.nwk`
+
+
+------------------------------------
+Detailed tutorial on how to run APPLES on various datasets
+------------------------------------
+
+Please refer to the tutorial below for detailed examples of usage in alignment-based and alignment-free settings.
+
+[https://github.com/smirarab/tutorials/blob/master/Skmer+APPLES+tutorial.md](https://github.com/smirarab/tutorials/blob/master/Skmer+APPLES+tutorial.md)
