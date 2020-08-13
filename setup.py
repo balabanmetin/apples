@@ -14,6 +14,6 @@ setup(
         author_email='balaban@ucsd.edu',
         packages=find_packages(),
         zip_safe = False,
-        install_requires=['numpy','treeswift'],
+        install_requires=['numpy','treeswift','treecluster'],
         include_package_data=True
 )

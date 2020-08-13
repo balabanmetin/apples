@@ -3,8 +3,10 @@
 from optparse import OptionParser
 import re
 from apples.Core import Core
-from apples.criteria import OLS, FM, BE
-from apples import readfq, distance, util
+from apples.readfq import readfq
+from apples import util
+from apples.runquery import runquery
+from apples.Reference import *
 import multiprocessing as mp
 from apples.jutil import extended_newick, join_jplace
 import sys
@@ -12,60 +14,6 @@ import json
 import numpy as np
 import treeswift as ts
 
-
-def runquery(treecore, treecore_frag, options, query_name, query_seq, obs_dist, refs):
-    jplace = dict()
-    jplace["placements"] = [{"p": [[0, 0, 1, 0, 0]], "n": [query_name]}]
-    if not obs_dist:
-        obs_dist = {query_name: 0}
-        for tagr, seqr in refs:
-            obs_dist[tagr] = distance.jc69(query_seq, seqr)
-
-    for l in treecore.tree.traverse_postorder(internal=False):
-        if l.label not in obs_dist:
-            raise ValueError('Taxon {} should be in distances table.'.format(l.label))
-        if obs_dist[l.label] == 0:
-            jplace["placements"][0]["p"][0][0] = l.edge_index
-            return jplace
-
-    # remove distances larger than threshold, starting from the largest
-    tx = 0
-    #    for k,v in sorted(obs_dist.items(), key=lambda kv: kv[1], reverse=True):
-    #        if tx >= len(obs_dist) - 200 or v <= filt_threshold:
-    #            break
-    #        else:
-    #            obs_dist[k] = -1
-    #            tx += 1
-
-    for k, v in sorted(obs_dist.items(), key=lambda kv: kv[1]):
-        if v == -1:
-            continue
-        tx += 1
-        if tx > options.base_observation_threshold and v > options.filt_threshold:
-            obs_dist[k] = -1
-    if tx < 2:
-        sys.stderr.write('Taxon {} cannot be placed. At least two non-infinity distances '
-                         'should be observed to place a taxa. Placing on root.\n'.format(query_name))
-        jplace["placements"][0]["p"][0][0] = -1
-        return jplace
-
-    if -1 not in obs_dist.values():
-        tc = treecore
-        tc.dp(obs_dist)
-    else:
-        tc = treecore_frag
-        tc.validate_edges(obs_dist)
-        tc.dp_frag(obs_dist)
-
-    if options.method_name == "BE":
-        alg = BE(tc.tree)
-    elif options.method_name == "FM":
-        alg = FM(tc.tree)
-    else:
-        alg = OLS(tc.tree)
-    alg.placement_per_edge(options.negative_branch)
-    jplace["placements"][0]["p"] = [alg.placement(options.criterion_name, query_name)]
-    return jplace
 
 
 if __name__ == "__main__":
@@ -101,7 +49,7 @@ if __name__ == "__main__":
     parser.add_option("-f", "--filter", dest="filt_threshold", default="5",
                       help="ignores distances higher than the given threshold. "
                            "Use when long distances have a high bias or variance.", metavar="NUMBER")
-    parser.add_option("-b", "--base", dest="base_observation_threshold", default="99999999999",
+    parser.add_option("-b", "--base", dest="base_observation_threshold", default="0",
                       help="minimum number of observations kept for "
                            "each query ignoring the filter threshold.", metavar="NUMBER")
 
@@ -119,23 +67,18 @@ if __name__ == "__main__":
         if options.dist_fp:
             raise ValueError('Input should be either an alignment or a distance matrix, but not both!')
 
-        reftags = []
-        refseqs = []
         querytags = []
         queryseqs = []
         num_query = 0
 
-        f = open(options.ref_fp)
-        for name, seq, qual in readfq.readfq(f):
-            reftags.append(name)
-            refseqs.append(np.frombuffer(seq.upper().encode(), dtype='S1'))
-        f.close()
+        reference = Reduced_reference(options.ref_fp, options.tree_fp,
+                                      options.filt_threshold, options.base_observation_threshold)
 
         if options.query_fp and options.extended_ref_fp:
             raise ValueError('Input should be either an extended alignment or a query alignment, but not both!')
         if options.query_fp:
             f = open(options.query_fp)
-            for name, seq, qual in readfq.readfq(f):
+            for name, seq, qual in readfq(f):
                 querytags.append(name)
                 queryseqs.append(np.frombuffer(seq.upper().encode(), dtype='S1'))
             f.close()
@@ -144,7 +87,7 @@ if __name__ == "__main__":
             f = open(options.extended_ref_fp)
             setreftags = set(reftags)
             translation = str.maketrans('abcdefghijklmnopqrstuvwxyz', '-' * 26)
-            for name, seq, qual in readfq.readfq(f):
+            for name, seq, qual in readfq(f):
                 if name not in setreftags:
                     querytags.append(name)
                     queryseqs.append(np.frombuffer(seq.translate(translation).encode(), dtype='S1'))
@@ -153,7 +96,7 @@ if __name__ == "__main__":
 
         def set_queries(querytags, queryseqs):
             for querytags, queryseqs in zip(querytags, queryseqs):
-                yield (treecore, treecore_frag, options, querytags, queryseqs, None, zip(reftags, refseqs))
+                yield (treecore, treecore_frag, options, querytags, queryseqs, None, reference)
 
 
         queries = set_queries(querytags, queryseqs)
