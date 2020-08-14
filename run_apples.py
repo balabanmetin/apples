@@ -5,7 +5,7 @@ import re
 from apples.Core import Core
 from apples.readfq import readfq
 from apples import util
-from apples.runquery import runquery
+from apples.runquery import Query_context
 from apples.Reference import *
 import multiprocessing as mp
 from apples.jutil import extended_newick, join_jplace
@@ -63,6 +63,19 @@ if __name__ == "__main__":
     if not options.num_thread:
         options.num_thread = mp.cpu_count()
 
+    f = open(options.tree_fp)
+    tree_string = f.readline()
+    f.close()
+
+    first_read_tree = ts.read_tree(tree_string, schema='newick')
+    util.index_edges(first_read_tree)
+    extended_newick_string = extended_newick(first_read_tree)
+    treecore = Core(first_read_tree)
+    treecore.init()
+    second_read_tree = ts.read_tree(tree_string, schema='newick')
+    util.index_edges(second_read_tree)
+    treecore_frag = Core(second_read_tree)
+
     if options.ref_fp:
         if options.dist_fp:
             raise ValueError('Input should be either an alignment or a distance matrix, but not both!')
@@ -74,6 +87,7 @@ if __name__ == "__main__":
         reference = Reduced_reference(options.ref_fp, options.tree_fp,
                                       options.filt_threshold, options.base_observation_threshold)
 
+        query_context = Query_context(treecore, treecore_frag, options, reference)
         if options.query_fp and options.extended_ref_fp:
             raise ValueError('Input should be either an extended alignment or a query alignment, but not both!')
         if options.query_fp:
@@ -96,7 +110,7 @@ if __name__ == "__main__":
 
         def set_queries(querytags, queryseqs):
             for querytags, queryseqs in zip(querytags, queryseqs):
-                yield (treecore, treecore_frag, options, querytags, queryseqs, None, reference)
+                yield (querytags, queryseqs, None)
 
 
         queries = set_queries(querytags, queryseqs)
@@ -111,26 +125,13 @@ if __name__ == "__main__":
                 dists = list(re.split("\s+", line.strip()))
                 query_name = dists[0]
                 obs_dist = dict(zip(tags, map(float, dists[1:])))
-                yield (treecore, treecore_frag, options, query_name, None, obs_dist, None)
+                yield (query_name, None, obs_dist)
 
 
         queries = read_dismat(f)
 
-    f = open(options.tree_fp)
-    tree_string = f.readline()
-    f.close()
-
-    first_read_tree = ts.read_tree(tree_string, schema='newick')
-    util.index_edges(first_read_tree)
-    extended_newick_string = extended_newick(first_read_tree)
-    treecore = Core(first_read_tree)
-    treecore.init()
-    second_read_tree = ts.read_tree(tree_string, schema='newick')
-    util.index_edges(second_read_tree)
-    treecore_frag = Core(second_read_tree)
-
     pool = mp.Pool(options.num_thread)
-    results = pool.starmap(runquery, queries)
+    results = pool.starmap(query_context.runquery, queries)
 
     result = join_jplace(results)
     result["tree"] = extended_newick_string
