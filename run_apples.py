@@ -5,8 +5,7 @@ import re
 from apples.Core import Core
 from apples.readfq import readfq
 from apples import util
-#from apples.runquery import runquery
-from apples.Reference import *
+from apples.Reference import Reduced_reference
 import multiprocessing as mp
 from apples.jutil import extended_newick, join_jplace
 import sys
@@ -15,13 +14,15 @@ import numpy as np
 import treeswift as ts
 from apples.criteria import OLS, FM, BE
 
+
 def runquery(query_name, query_seq, obs_dist):
-    jplace=dict()
-    jplace["placements"] = [{"p":[[0,0,1,0,0]] ,"n":[query_name]}]
+    jplace = dict()
+    jplace["placements"] = [{"p": [[0, 0, 1, 0, 0]], "n": [query_name]}]
+
     if not obs_dist:
         obs_dist = reference.get_obs_dist(query_seq, query_name)
     else:
-        tx=0
+        tx = 0
         for k, v in sorted(obs_dist.items(), key=lambda kv: kv[1]):
             if v == -1:
                 continue
@@ -35,15 +36,17 @@ def runquery(query_name, query_seq, obs_dist):
         if obs_dist[l.label] == 0:
             jplace["placements"][0]["p"][0][0] = l.edge_index
             return jplace
-    
-    tx = len([ v for k, v in obs_dist.items() if v > -1 ]) 
-    if tx < 2:
+
+    # number of non-infinity distances
+    tx = len([v for k, v in obs_dist.items() if v > -1])
+
+    if tx <= 2:
         sys.stderr.write('Taxon {} cannot be placed. At least three non-infinity distances '
                          'should be observed to place a taxon. '
                          'Consequently, this taxon is ignored (no output).\n'.format(query_name))
         jplace["placements"][0]["p"][0][0] = -1
         return jplace
-  
+
     if -1 not in obs_dist.values():
         tc = treecore
         tc.dp(obs_dist)
@@ -59,11 +62,12 @@ def runquery(query_name, query_seq, obs_dist):
     else:
         alg = OLS(tc.tree)
     alg.placement_per_edge(options.negative_branch)
-    jplace["placements"][0]["p"] = [alg.placement(options.criterion_name,query_name)]
+    jplace["placements"][0]["p"] = [alg.placement(options.criterion_name, query_name)]
     return jplace
 
 
 if __name__ == "__main__":
+    mp.set_start_method('fork')
     parser = OptionParser()
     parser.add_option("-t", "--tree", dest="tree_fp",
                       help="path to the reference tree", metavar="FILE")
@@ -132,7 +136,7 @@ if __name__ == "__main__":
             num_query = len(querytags)
         else:
             f = open(options.extended_ref_fp)
-            setreftags = set(reftags)
+            setreftags = set(reference.refs.keys())
             translation = str.maketrans('abcdefghijklmnopqrstuvwxyz', '-' * 26)
             for name, seq, qual in readfq(f):
                 if name not in setreftags:
@@ -142,8 +146,8 @@ if __name__ == "__main__":
             f.close()
 
         def set_queries(querytags, queryseqs):
-            for querytags, queryseqs in zip(querytags, queryseqs):
-                yield (querytags, queryseqs, None)
+            for query_name, query_seq in zip(querytags, queryseqs):
+                yield (query_name, query_seq, None)
 
 
         queries = set_queries(querytags, queryseqs)
@@ -158,7 +162,7 @@ if __name__ == "__main__":
                 dists = list(re.split("\s+", line.strip()))
                 query_name = dists[0]
                 obs_dist = dict(zip(tags, map(float, dists[1:])))
-                yield ( query_name, None, obs_dist)
+                yield (query_name, None, obs_dist)
 
 
         queries = read_dismat(f)
