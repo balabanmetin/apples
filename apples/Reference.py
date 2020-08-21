@@ -2,36 +2,41 @@ import itertools
 import subprocess
 import tempfile
 from abc import ABC, abstractmethod
-from apples.distance import jc69
+from apples.distance import *
 import numpy as np
-from apples.readfq import readfq
+from apples.fasta2dic import fasta2dic
 import heapq
 
 
 class Reference(ABC):
-    def __init__(self, ref_fp):
-        self.refs = {}
-        with open(ref_fp) as f:
-            for name, seq, qual in readfq(f):
-                self.refs[name] = np.frombuffer(seq.upper().encode(), dtype='S1')
+    """prot flag true if protein sequences, false for nucleotide sequences"""
+    def __init__(self, ref_fp, prot_flag):
+        self.refs = fasta2dic(ref_fp, prot_flag, False)  # never mask low confidence bases in the reference
+        self.prot_flag = prot_flag
 
+        if prot_flag:
+            self.dist_function = scoredist
+        else:
+            self.dist_function = jc69
     @abstractmethod
     def get_obs_dist(self, query_seq, query_name):
         pass
 
 
 class Full_reference(Reference):
+    def __init__(self, ref_fp, prot_flag):
+        Reference.__init__(self, ref_fp, prot_flag)
 
     def get_obs_dist(self, query_seq, query_tag):
         obs_dist = {query_tag: 0}
         for tagr, seqr in self.refs:
-            obs_dist[tagr] = jc69(query_seq, seqr)
+            obs_dist[tagr] = self.dist_function(query_seq, seqr)
         return obs_dist
 
 
 class Reduced_reference(Reference):
-    def __init__(self, ref_fp, tree_file, threshold, baseobs):
-        Reference.__init__(self, ref_fp)
+    def __init__(self, ref_fp, prot_flag, tree_file, threshold, baseobs):
+        Reference.__init__(self, ref_fp, prot_flag)
         self.threshold = threshold
         self.baseobs = baseobs
 
@@ -56,12 +61,20 @@ class Reduced_reference(Reference):
 
     def _find_representative(self, group):
 
-        alphabet = np.array([b'A', b'C', b'G', b'T', b'-'], dtype="S1")
-        lookup = {b'A': 0, b'C': 1, b'G': 2, b'T': 3, b'-': 4}
+        if self.prot_flag:
+            alphabet = np.array(['A', 'C', 'D', 'E', 'F',
+                                 'G', 'H', 'I', 'K', 'L',
+                                 'M', 'N', 'P', 'Q', 'R',
+                                 'S', 'T', 'V', 'W', 'Y', '-'], dtype="S1")
+
+        else:
+            alphabet = np.array([b'A', b'C', b'G', b'T', b'-'], dtype="S1")
+
+        lookup = {n: i for i, n in enumerate(alphabet)}
 
         def get_consensus(arr):
             n = arr.shape[1]
-            frequency_matrix = np.zeros((5, n))
+            frequency_matrix = np.zeros((len(alphabet), n))
             for dna in arr:
                 for base in alphabet:
                     frequency_matrix[lookup[base]] += dna == base
@@ -77,7 +90,7 @@ class Reduced_reference(Reference):
         representative_dists = []
         i = 0
         for consensus_seq, group in self.representatives:
-            dist = jc69(query_seq, consensus_seq)
+            dist = self.dist_function(query_seq, consensus_seq)
             representative_dists.append((dist, i))
             i += 1
         heapq.heapify(representative_dists)
@@ -86,7 +99,7 @@ class Reduced_reference(Reference):
             if head[0] <= self.threshold or (head[0] > self.threshold and obs_num < self.baseobs):
                 _, group = self.representatives[head[1]]
                 for thing in group:
-                    obs_dist[thing] = jc69(query_seq, self.refs[thing])
+                    obs_dist[thing] = self.dist_function(query_seq, self.refs[thing])
                     obs_num += 1
             else:
                 break

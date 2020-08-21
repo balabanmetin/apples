@@ -3,14 +3,13 @@
 from optparse import OptionParser
 import re
 from apples.Core import Core
-from apples.readfq import readfq
+from apples.fasta2dic import fasta2dic
 from apples import util
 from apples.Reference import Reduced_reference
 import multiprocessing as mp
 from apples.jutil import extended_newick, join_jplace
 import sys
 import json
-import numpy as np
 import treeswift as ts
 from apples.criteria import OLS, FM, BE
 
@@ -92,8 +91,8 @@ if __name__ == "__main__":
                       help="name of the placement selection criterion (MLSE, ME, or HYBRID", metavar="CRITERIA")
     parser.add_option("-n", "--negative", dest="negative_branch", action='store_true',
                       help="relaxes positivity constraint on new branch lengths, i.e. allows negative branch lengths")
-    # parser.add_option("-p", "--protein", dest="protein_seqs", action='store_true',
-    #                  help="input sequences are protein sequences")
+    parser.add_option("-p", "--protein", dest="protein_seqs", action='store_true', default = False,
+                      help="input sequences are protein sequences")
     parser.add_option("-T", "--threads", dest="num_thread", default="0",
                       help="number of cores used in placement. "
                            "0 to use all cores in the running machine", metavar="NUMBER")
@@ -103,10 +102,12 @@ if __name__ == "__main__":
     parser.add_option("-b", "--base", dest="base_observation_threshold", default="0",
                       help="minimum number of observations kept for "
                            "each query ignoring the filter threshold.", metavar="NUMBER")
+    parser.add_option("-X", "--mask", dest="mask_lowconfidence", action='store_true', default = False,
+                      help="masks low confidence characters in the alignments indicated by lowercase characters "
+                           "output by softwares like SEPP.")
 
     (options, args) = parser.parse_args()
 
-    # protein_seqs = options.protein_seqs
     options.num_thread = int(options.num_thread)
     options.filt_threshold = float(options.filt_threshold)
     options.base_observation_threshold = float(options.base_observation_threshold)
@@ -118,43 +119,25 @@ if __name__ == "__main__":
         if options.dist_fp:
             raise ValueError('Input should be either an alignment or a distance matrix, but not both!')
 
-        querytags = []
-        queryseqs = []
-        num_query = 0
-
-        reference = Reduced_reference(options.ref_fp, options.tree_fp,
+        reference = Reduced_reference(options.ref_fp, options.protein_seqs, options.tree_fp,
                                       options.filt_threshold, options.base_observation_threshold)
 
         if options.query_fp and options.extended_ref_fp:
             raise ValueError('Input should be either an extended alignment or a query alignment, but not both!')
         if options.query_fp:
-            f = open(options.query_fp)
-            for name, seq, qual in readfq(f):
-                querytags.append(name)
-                queryseqs.append(np.frombuffer(seq.upper().encode(), dtype='S1'))
-            f.close()
-            num_query = len(querytags)
-        else:
-            f = open(options.extended_ref_fp)
-            setreftags = set(reference.refs.keys())
-            translation = str.maketrans('abcdefghijklmnopqrstuvwxyz', '-' * 26)
-            for name, seq, qual in readfq(f):
-                if name not in setreftags:
-                    querytags.append(name)
-                    queryseqs.append(np.frombuffer(seq.translate(translation).encode(), dtype='S1'))
-            num_query = len(querytags)
-            f.close()
+            query_dict = fasta2dic(options.query_fp, options.protein_seqs, options.mask_lowconfidence)
+        else:  # must be extended reference
+            extended_dict = fasta2dic(options.extended_ref_fp, options.protein_seqs, options.mask_lowconfidence)
+            query_dict = {key: value for key, value in extended_dict.items() if key not in reference.refs}
 
-        def set_queries(querytags, queryseqs):
-            for query_name, query_seq in zip(querytags, queryseqs):
+        def set_queries(query_dict):
+            for query_name, query_seq in query_dict.items():
                 yield (query_name, query_seq, None)
 
-
-        queries = set_queries(querytags, queryseqs)
+        queries = set_queries(query_dict)
 
     else:
         f = open(options.dist_fp)
-
 
         def read_dismat(f):
             tags = list(re.split("\s+", f.readline().rstrip()))[1:]
@@ -166,6 +149,7 @@ if __name__ == "__main__":
 
 
         queries = read_dismat(f)
+        f.close()
 
     f = open(options.tree_fp)
     tree_string = f.readline()
