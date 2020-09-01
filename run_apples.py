@@ -12,6 +12,7 @@ import sys
 import json
 import treeswift as ts
 from apples.criteria import OLS, FM, BE
+from sys import platform as _platform
 
 
 def runquery(query_name, query_seq, obs_dist):
@@ -164,8 +165,13 @@ if __name__ == "__main__":
     util.index_edges(second_read_tree)
     treecore_frag = Core(second_read_tree)
 
-    pool = mp.Pool(options.num_thread)
-    results = pool.starmap(runquery, queries)
+    if _platform == "win32" or _platform == "win64" or _platform == "msys":
+        # if windows, multithreading is not supported until either
+        # processes can be forked in windows or apples works with spawn.
+        results = list(map(lambda a: runquery(a[0], *a[1:]), queries))
+    else:
+        pool = mp.Pool(options.num_thread)
+        results = pool.starmap(runquery, queries)
 
     result = join_jplace(results)
     result["tree"] = extended_newick_string
