@@ -13,6 +13,10 @@ import json
 import treeswift as ts
 from apples.criteria import OLS, FM, BE
 from sys import platform as _platform
+import tempfile
+import os
+from subprocess import Popen, PIPE
+import pkg_resources
 
 
 def runquery(query_name, query_seq, obs_dist):
@@ -92,7 +96,7 @@ if __name__ == "__main__":
                       help="name of the placement selection criterion (MLSE, ME, or HYBRID", metavar="CRITERIA")
     parser.add_option("-n", "--negative", dest="negative_branch", action='store_true',
                       help="relaxes positivity constraint on new branch lengths, i.e. allows negative branch lengths")
-    parser.add_option("-p", "--protein", dest="protein_seqs", action='store_true', default = False,
+    parser.add_option("-p", "--protein", dest="protein_seqs", action='store_true', default=False,
                       help="input sequences are protein sequences")
     parser.add_option("-T", "--threads", dest="num_thread", default="0",
                       help="number of cores used in placement. "
@@ -103,15 +107,19 @@ if __name__ == "__main__":
     parser.add_option("-b", "--base", dest="base_observation_threshold", default="0",
                       help="minimum number of observations kept for "
                            "each query ignoring the filter threshold.", metavar="NUMBER")
-    parser.add_option("-X", "--mask", dest="mask_lowconfidence", action='store_true', default = False,
+    parser.add_option("-X", "--mask", dest="mask_lowconfidence", action='store_true', default=False,
                       help="masks low confidence characters in the alignments indicated by lowercase characters "
                            "output by softwares like SEPP.")
+    parser.add_option("-D", "--disable-reestimation", dest="disable_reestimation", action='store_true', default=False,
+                      help="disables minimum evolution branch length reestimation of the backbone tree. "
+                           "This option has no effect if input alignment is not provided.")
 
     (options, args) = parser.parse_args()
 
     options.num_thread = int(options.num_thread)
     options.filt_threshold = float(options.filt_threshold)
     options.base_observation_threshold = float(options.base_observation_threshold)
+    options.reestimate_backbone = not options.disable_reestimation
 
     if not options.num_thread:
         options.num_thread = mp.cpu_count()
@@ -131,14 +139,18 @@ if __name__ == "__main__":
             extended_dict = fasta2dic(options.extended_ref_fp, options.protein_seqs, options.mask_lowconfidence)
             query_dict = {key: value for key, value in extended_dict.items() if key not in reference.refs}
 
+
         def set_queries(query_dict):
             for query_name, query_seq in query_dict.items():
                 yield (query_name, query_seq, None)
 
+
         queries = set_queries(query_dict)
 
     else:
+        options.reestimate_backbone = False
         f = open(options.dist_fp)
+
 
         def read_dismat(f):
             tags = list(re.split("\s+", f.readline().rstrip()))[1:]
@@ -153,8 +165,39 @@ if __name__ == "__main__":
         f.close()
 
     f = open(options.tree_fp)
-    tree_string = f.readline()
+    orig_tree_string = f.readline()
     f.close()
+
+    if options.reestimate_backbone:  # reestimate backbone branch lengths
+        assert options.ref_fp
+        orig_branch_tree = ts.read_tree(orig_tree_string, schema='newick')
+        orig_branch_tree.resolve_polytomies()
+        orig_branch_resolved_fp = tempfile.NamedTemporaryFile(delete=True, mode='w+t').name
+        orig_branch_tree.write_tree_newick(orig_branch_resolved_fp)
+
+        if _platform == "darwin":
+            fasttree_exec = pkg_resources.resource_filename('apples', "tools/FastTree-darwin")
+        elif _platform == "linux" or _platform == "linux2":
+            fasttree_exec = pkg_resources.resource_filename('apples', "tools/FastTree-linux")
+        elif _platform == "win32" or _platform == "win64" or _platform == "msys":
+            fasttree_exec = pkg_resources.resource_filename('apples', "tools/FastTree.exe")
+        else:
+            # Unrecognised system
+            raise ValueError('Your system {} is not supported yet.' % _platform)
+
+        bb_fp = tempfile.NamedTemporaryFile(delete=True, mode='w+t')
+        fasttree_log = tempfile.NamedTemporaryFile(delete=True, mode='w+t').name
+
+        s = [fasttree_exec, "-nosupport", "-nome", "-noml", "-log", fasttree_log,
+             "-intree", orig_branch_resolved_fp]
+        if not options.protein_seqs:
+            s.append("-nt")
+        with open(options.ref_fp, "r") as rf:
+            with Popen(s, stdout=PIPE, stdin=rf, stderr=sys.stderr) as p:
+                tree_string = p.stdout.read().decode('utf-8')
+                print(tree_string)
+    else:
+        tree_string = orig_tree_string
 
     first_read_tree = ts.read_tree(tree_string, schema='newick')
     util.index_edges(first_read_tree)
@@ -168,7 +211,7 @@ if __name__ == "__main__":
     if _platform == "win32" or _platform == "win64" or _platform == "msys":
         # if windows, multithreading is not supported until either
         # processes can be forked in windows or apples works with spawn.
-        results = list(map(lambda a: runquery(a[0], *a[1:]), queries))
+        results = list(map(lambda a: runquery(a[0], *a[1:]), queries))   # a.k.a starmap
     else:
         pool = mp.Pool(options.num_thread)
         results = pool.starmap(runquery, queries)
