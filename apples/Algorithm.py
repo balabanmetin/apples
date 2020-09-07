@@ -5,8 +5,8 @@ import math
 
 
 class Algorithm(ABC):
-    def __init__(self, tree):
-        self.tree = tree
+    def __init__(self, subtree):
+        self.subtree = subtree
 
     @abstractmethod
     def placement_per_edge(self, negative_branch):
@@ -16,12 +16,12 @@ class Algorithm(ABC):
     def error_per_edge(edge):
         pass
 
-    def placement(self, selection_name, query_name):
+    def placement(self, selection_name):
 
-        valids = filter(lambda x: x.valid, self.tree.traverse_postorder())
+        valids = filter(lambda x: x.valid, self.subtree.traverse_postorder())
 
         if selection_name == "HYBRID":
-            sm = heapq.nsmallest(math.floor(math.log2(self.tree.num_nodes(internal=False))),
+            sm = heapq.nsmallest(math.floor(math.log2(self.subtree.num_nodes)),
                                  valids,
                                  key=lambda e: self.error_per_edge(e))
             placed_edge = min(sm, key=lambda e: e.x_1)
@@ -37,4 +37,5 @@ class Algorithm(ABC):
             pendant = placed_edge.x_1
             relative_distal = placed_edge.x_2
 
-        return [placed_edge.edge_index, self.error_per_edge(placed_edge), 1, placed_edge.edge_length - relative_distal, pendant]
+        return [placed_edge.edge_index, self.error_per_edge(placed_edge),
+                1, placed_edge.edge_length - relative_distal, pendant]

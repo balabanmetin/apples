@@ -13,7 +13,7 @@ class OLS(Algorithm):
 
     # computes all alternative OLS placements
     def placement_per_edge(self, negative_branch):
-        for node in filter(lambda x: x.valid, self.tree.traverse_postorder()):
+        for node in filter(lambda x: x.valid, self.subtree.traverse_postorder()):
             a_11 = node.R + node.S
             a_12 = node.R - node.S
             a_21 = a_12
@@ -42,7 +42,7 @@ class FM(Algorithm):
 
     # computes all alternative Fitch-Margoliash placements
     def placement_per_edge(self, negative_branch):
-        for node in filter(lambda x: x.valid, self.tree.traverse_postorder()):
+        for node in filter(lambda x: x.valid, self.subtree.traverse_postorder()):
             a_11 = node.R1_D2 + node.S1_D2
             a_12 = node.R1_D2 - node.S1_D2
             a_21 = a_12
@@ -71,7 +71,7 @@ class BE(Algorithm):
 
     # computes all alternative BE placements
     def placement_per_edge(self, negative_branch):
-        for node in filter(lambda x: x.valid, self.tree.traverse_postorder()):
+        for node in filter(lambda x: x.valid, self.subtree.traverse_postorder()):
             a_11 = node.R1_D + node.S1_D
             a_12 = node.R1_D - node.S1_D
             a_21 = a_12

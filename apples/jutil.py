@@ -22,11 +22,10 @@ def extended_newick(tree):
     else:
         suffix = ':%s' % str(tree.root.edge_length)
     strng = _nodeprint(tree.root)
-    count = tree.root.edge_index
     if tree.is_rooted:
-        return '[&R] %s%s{%d};' % (strng, suffix, count)
+        return '[&R] %s%s;' % (strng, suffix)
     else:
-        return '%s%s{%d};' % (strng, suffix, count)
+        return '%s%s;' % (strng, suffix)
 
 
 def _nodeprint(root):

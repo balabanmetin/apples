@@ -85,7 +85,7 @@ class Reduced_reference(Reference):
         return get_consensus(group_mat)
 
     def get_obs_dist(self, query_seq, query_tag):
-        obs_dist = {query_tag: 0}
+        obs_dist = {}
         obs_num = 0
         representative_dists = []
         i = 0
@@ -104,7 +104,4 @@ class Reduced_reference(Reference):
             else:
                 break
 
-        for tagr in self.refs.keys():
-            if tagr not in obs_dist:
-                obs_dist[tagr] = -1
         return obs_dist

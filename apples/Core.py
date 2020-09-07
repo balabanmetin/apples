@@ -12,9 +12,9 @@ class Core:
         self.observed_S_values(obs_dist)
         self.observed_R_values()
 
-    def dp_frag(self, obs_dist):
-        self.all_S_values(obs_dist)
-        self.all_R_values()
+    def dp_frag(self, subtree):
+        self.all_S_values(subtree)
+        self.all_R_values(subtree)
 
     def observed_S_values(self, obs_dist):
         for node in self.tree.traverse_postorder():
@@ -101,27 +101,9 @@ class Core:
                 node.Rd2 += node.parent.R * node.parent.edge_length * node.parent.edge_length + node.parent.Rd2 + \
                            2 * node.parent.edge_length * node.parent.Rd
 
-    def validate_edges(self, obs_dist):
-        for node in self.tree.traverse_postorder():
-            if node.is_leaf():
-                if obs_dist[node.label] == -1.0:
-                    node.valid = False
-                else:
-                    node.valid = True
-            else:
-                if sum([i.valid for i in node.children]) == 0:
-                    node.valid = False
-                else:
-                    node.valid = True
-        for node in self.tree.traverse_preorder():
-            if node == self.tree.root:
-                node.valid = False
-            elif sum([i.valid for i in filter(lambda x: x != node, node.parent.children)]) == 0 \
-                    and not node.parent.valid:
-                node.valid = False
-
-    def all_S_values(self, obs_dist):
-        for node in filter(lambda x: x.valid, self.tree.traverse_postorder()):
+    def all_S_values(self, subtree):
+        obs_dist = subtree.obs_dist
+        for node in filter(lambda x: x.valid, subtree.traverse_postorder()):
             if node.is_leaf():
                 node.S = 1
                 node.Sd = 0
@@ -154,8 +136,8 @@ class Core:
                     node.S1_D += child.S1_D
                     node.S1_D2 += child.S1_D2
 
-    def all_R_values(self):
-        for node in filter(lambda x: x.valid, self.tree.traverse_preorder()):
+    def all_R_values(self, subtree):
+        for node in filter(lambda x: x.valid, subtree.traverse_preorder()):
             node.RDd, node.Rd_D, node.Rd_D2, node.Rd2_D, node.Rd2_D2, node.RD2, node.RD, node.R1_D, node.R1_D2 = 9 * [0]
             node.R, node.Rd, node.Rd2 = 3 * [0]
             for sibling in filter(lambda x: x.valid and x != node, node.parent.children):
@@ -172,7 +154,7 @@ class Core:
                 node.RD += sibling.SD
                 node.R1_D += sibling.S1_D
                 node.R1_D2 += sibling.S1_D2
-            if node.parent != self.tree.root and node.parent.valid:
+            if node.parent != subtree.root and node.parent.valid:
                 node.R += node.parent.R
                 node.Rd += node.parent.R * node.parent.edge_length + node.parent.Rd
                 node.Rd2 += node.parent.R * node.parent.edge_length * node.parent.edge_length + node.parent.Rd2 + \
@@ -186,6 +168,3 @@ class Core:
                 node.RD += node.parent.RD
                 node.R1_D += node.parent.R1_D
                 node.R1_D2 += node.parent.R1_D2
-
-
-
