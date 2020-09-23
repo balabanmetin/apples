@@ -2,7 +2,7 @@
 
 import re
 from apples.Core import Core
-from apples.Subtree import Subtree
+from apples.PoolQueryWorker import PoolQueryWorker
 from apples.fasta2dic import fasta2dic
 from apples import util
 from apples.Reference import Reduced_reference
@@ -12,72 +12,16 @@ from apples.jutil import extended_newick, join_jplace
 import sys
 import json
 import treeswift as ts
-from apples.criteria import OLS, FM, BE
 from sys import platform as _platform
 import tempfile
 from subprocess import Popen, PIPE
 import pkg_resources
 
 
-def runquery(query_name, query_seq, obs_dist):
-    jplace = dict()
-    jplace["placements"] = [{"p": [[0, 0, 1, 0, 0]], "n": [query_name]}]
-
-    if not obs_dist:
-        obs_dist = reference.get_obs_dist(query_seq, query_name)
-    else:
-        def valid_dists(obs_dist, name_to_node_map):
-            tx = 0
-            for k, v in sorted(obs_dist.items(), key=lambda kv: kv[1]):
-                if v < 0 or k not in name_to_node_map:
-                    continue
-                tx += 1
-                if tx > options.base_observation_threshold and v > options.filt_threshold:
-                    break
-                yield (k, v)
-        obs_dist = dict(valid_dists(obs_dist, name_to_node_map))
-
-    if len(obs_dist) <= 2:
-        sys.stderr.write('Taxon {} cannot be placed. At least three non-infinity distances '
-                         'should be observed to place a taxon. '
-                         'Consequently, this taxon is ignored (no output).\n'.format(query_name))
-        jplace["placements"][0]["p"][0][0] = -1
-        return jplace
-
-    for k, v in obs_dist.items():
-        if v == 0 and k != query_name:
-            jplace["placements"][0]["p"][0][0] = name_to_node_map[k].edge_index
-            return jplace
-
-    tc = treecore_frag
-    subtree = Subtree(obs_dist, name_to_node_map)
-    tc.dp_frag(subtree)
-
-    if options.method_name == "BE":
-        alg = BE(tc.tree)
-    elif options.method_name == "FM":
-        alg = FM(tc.tree)
-    else:
-        alg = OLS(tc.tree)
-    alg.placement_per_edge(options.negative_branch)
-    jplace["placements"][0]["p"] = [alg.placement(options.criterion_name)]
-    subtree.unroll_changes()
-    return jplace
-
-
 if __name__ == "__main__":
     mp.set_start_method('fork')
 
-    parser = options_config()
-    (options, args) = parser.parse_args()
-
-    options.num_thread = int(options.num_thread)
-    options.filt_threshold = float(options.filt_threshold)
-    options.base_observation_threshold = float(options.base_observation_threshold)
-    options.reestimate_backbone = not options.disable_reestimation
-
-    if not options.num_thread:
-        options.num_thread = mp.cpu_count()
+    options, args = options_config()
 
     if options.ref_fp:
         if options.dist_fp:
@@ -104,6 +48,7 @@ if __name__ == "__main__":
 
     else:
         options.reestimate_backbone = False
+        reference = None
 
         def read_dismat(f):
             tags = list(re.split("\s+", f.readline().rstrip()))[1:]
@@ -166,13 +111,15 @@ if __name__ == "__main__":
     util.set_levels(first_read_tree)
     treecore_frag = Core(first_read_tree)
 
+    queryworker = PoolQueryWorker()
+    queryworker.set_class_attributes(reference, options, name_to_node_map, treecore_frag)
     if _platform == "win32" or _platform == "win64" or _platform == "msys":
         # if windows, multithreading is not supported until either
         # processes can be forked in windows or apples works with spawn.
-        results = list(map(lambda a: runquery(a[0], *a[1:]), queries))   # a.k.a starmap
+        results = list(map(lambda a: queryworker.runquery(a[0], *a[1:]), queries))   # a.k.a starmap
     else:
         pool = mp.Pool(options.num_thread)
-        results = pool.starmap(runquery, queries)
+        results = pool.starmap(queryworker.runquery, queries)
 
     result = join_jplace(results)
     result["tree"] = extended_newick_string
