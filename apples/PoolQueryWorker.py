@@ -1,4 +1,4 @@
-from apples.criteria import OLS, FM, BE
+from apples.criteria import OLS, FM, BME, BE
 import sys
 from apples.Subtree import Subtree
 
@@ -57,6 +57,8 @@ class PoolQueryWorker:
             alg = BE(tc.tree)
         elif cls.options.method_name == "FM":
             alg = FM(tc.tree)
+        elif cls.options.method_name == "BME":
+            alg = BME(tc.tree)
         else:
             alg = OLS(tc.tree)
         alg.placement_per_edge(cls.options.negative_branch)

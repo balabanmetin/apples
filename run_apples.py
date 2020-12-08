@@ -107,8 +107,8 @@ if __name__ == "__main__":
         name_to_node_map[l.label] = l
 
     extended_newick_string = extended_newick(first_read_tree)
-    util.index_edges(first_read_tree)
-    util.set_levels(first_read_tree)
+    # util.index_edges(first_read_tree)
+    # util.set_levels(first_read_tree)
     treecore_frag = Core(first_read_tree)
 
     queryworker = PoolQueryWorker()

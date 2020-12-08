@@ -22,7 +22,7 @@ def options_config():
                       help="path to the query alignment file (FASTA), containing query sequences",
                       metavar="FILE")
     parser.add_option("-m", "--method", dest="method_name", default="FM",
-                      help="name of the weighted least squares method (OLS, FM, or BE)", metavar="METHOD")
+                      help="name of the weighted least squares method (OLS, FM, BME, or BE)", metavar="METHOD")
     parser.add_option("-c", "--criterion", dest="criterion_name", default="MLSE",
                       help="name of the placement selection criterion (MLSE, ME, or HYBRID", metavar="CRITERIA")
     parser.add_option("-n", "--negative", dest="negative_branch", action='store_true',
