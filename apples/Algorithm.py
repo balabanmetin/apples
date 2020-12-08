@@ -8,6 +8,18 @@ class Algorithm(ABC):
     def __init__(self, subtree):
         self.subtree = subtree
 
+    def dp_frag(self):
+        self.all_S_values()
+        self.all_R_values()
+
+    @abstractmethod
+    def all_S_values(self):
+        pass
+
+    @abstractmethod
+    def all_R_values(self):
+        pass
+
     @abstractmethod
     def placement_per_edge(self, negative_branch):
         pass

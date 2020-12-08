@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import re
-from apples.Core import Core
 from apples.PoolQueryWorker import PoolQueryWorker
 from apples.fasta2dic import fasta2dic
 from apples import util
@@ -109,10 +108,10 @@ if __name__ == "__main__":
     extended_newick_string = extended_newick(first_read_tree)
     # util.index_edges(first_read_tree)
     # util.set_levels(first_read_tree)
-    treecore_frag = Core(first_read_tree)
+    # treecore_frag = Core(first_read_tree)
 
     queryworker = PoolQueryWorker()
-    queryworker.set_class_attributes(reference, options, name_to_node_map, treecore_frag)
+    queryworker.set_class_attributes(reference, options, name_to_node_map)
     if _platform == "win32" or _platform == "win64" or _platform == "msys":
         # if windows, multithreading is not supported until either
         # processes can be forked in windows or apples works with spawn.

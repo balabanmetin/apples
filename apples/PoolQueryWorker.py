@@ -1,4 +1,9 @@
-from apples.criteria import OLS, FM, BME, BE
+from apples.OLS import OLS
+from apples.FM import FM
+from apples.BE import BE
+from apples.BME import BME
+
+
 import sys
 from apples.Subtree import Subtree
 
@@ -11,11 +16,11 @@ class PoolQueryWorker:
 
 
     @classmethod
-    def set_class_attributes(cls, reference, options, name_to_node_map, treecore):
+    def set_class_attributes(cls, reference, options, name_to_node_map):
         cls.reference = reference
         cls.options = options
         cls.name_to_node_map = name_to_node_map
-        cls.treecore = treecore
+        # cls.tree = tree
 
     @classmethod
     def runquery(cls, query_name, query_seq, obs_dist):
@@ -49,18 +54,18 @@ class PoolQueryWorker:
                 jplace["placements"][0]["p"][0][0] = cls.name_to_node_map[k].edge_index
                 return jplace
 
-        tc = cls.treecore
         subtree = Subtree(obs_dist, cls.name_to_node_map)
-        tc.dp_frag(subtree)
 
         if cls.options.method_name == "BE":
-            alg = BE(tc.tree)
+            alg = BE(subtree)
         elif cls.options.method_name == "FM":
-            alg = FM(tc.tree)
+            alg = FM(subtree)
         elif cls.options.method_name == "BME":
-            alg = BME(tc.tree)
+            alg = BME(subtree)
         else:
-            alg = OLS(tc.tree)
+            alg = OLS(subtree)
+        alg.dp_frag()
+
         alg.placement_per_edge(cls.options.negative_branch)
         jplace["placements"][0]["p"] = [alg.placement(cls.options.criterion_name)]
         subtree.unroll_changes()
