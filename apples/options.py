@@ -1,5 +1,6 @@
 from optparse import OptionParser
 from multiprocessing import cpu_count
+import logging
 
 
 def options_config():
@@ -44,6 +45,8 @@ def options_config():
     parser.add_option("-D", "--disable-reestimation", dest="disable_reestimation", action='store_true', default=False,
                       help="disables minimum evolution branch length reestimation of the backbone tree. "
                            "This option has no effect if input alignment is not provided.")
+    parser.add_option("--debug", dest="debug_mode", action='store_true', default=False,
+                      help="Enables debug mode.")
 
     (options, args) = parser.parse_args()
 
@@ -52,6 +55,9 @@ def options_config():
     options.base_observation_threshold = float(options.base_observation_threshold)
     options.reestimate_backbone = not options.disable_reestimation
 
+    if options.debug_mode:
+        root = logging.getLogger()
+        root.setLevel(logging.DEBUG)
     if not options.num_thread:
         options.num_thread = cpu_count()
 

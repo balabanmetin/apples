@@ -6,7 +6,8 @@ from apples.distance import *
 import numpy as np
 from apples.fasta2dic import fasta2dic
 import heapq
-
+import time
+import logging
 
 class Reference(ABC):
     """prot flag true if protein sequences, false for nucleotide sequences"""
@@ -40,11 +41,15 @@ class Reduced_reference(Reference):
         self.threshold = threshold
         self.baseobs = baseobs
 
+        start = time.time()
         tc_output_file = tempfile.NamedTemporaryFile(delete=True, mode='w+t').name
         nldef = tempfile.NamedTemporaryFile(delete=True, mode='w+t')
         s = ["TreeCluster.py", "-t", str(self.threshold * 1.2), "-i", tree_file, "-m", "max", "-o", tc_output_file]
         subprocess.call(s, stdout=nldef, stderr=nldef)
+        logging.info(
+            "[%s] TreeCluster is completed in %.3f seconds." % (time.strftime("%H:%M:%S"),(time.time() - start)))
 
+        start = time.time()
         self.representatives = []
         with open(tc_output_file, "r") as tc_output:
             tc_output.readline()
@@ -58,6 +63,9 @@ class Reduced_reference(Reference):
                 else:
                     things = [g[0] for g in group]
                     self.representatives.append((self._find_representative(things), things))
+        logging.info(
+            "[%s] Representative sequences are computed in %.3f seconds." %
+            (time.strftime("%H:%M:%S"), (time.time() - start)))
 
     def _find_representative(self, group):
 

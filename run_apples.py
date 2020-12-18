@@ -15,20 +15,27 @@ from sys import platform as _platform
 import tempfile
 from subprocess import Popen, PIPE
 import pkg_resources
+import time
+import logging
 
 
 if __name__ == "__main__":
     mp.set_start_method('fork')
-
+    startb = time.time()
     options, args = options_config()
+    logging.info("[%s] Options are parsed." % time.strftime("%H:%M:%S"))
 
     if options.ref_fp:
         if options.dist_fp:
             raise ValueError('Input should be either an alignment or a distance matrix, but not both!')
 
+        start = time.time()
         reference = Reduced_reference(options.ref_fp, options.protein_seqs, options.tree_fp,
                                       options.filt_threshold, options.base_observation_threshold)
+        logging.info(
+            "[%s] Reduced reference is computed in %.3f seconds." % (time.strftime("%H:%M:%S"),(time.time() - start)))
 
+        start = time.time()
         if options.query_fp and options.extended_ref_fp:
             raise ValueError('Input should be either an extended alignment or a query alignment, but not both!')
         if options.query_fp:
@@ -44,7 +51,8 @@ if __name__ == "__main__":
 
 
         queries = set_queries(query_dict)
-
+        logging.info(
+            "[%s] Query sequences are prepared in %.3f seconds." % (time.strftime("%H:%M:%S"), (time.time() - start)))
     else:
         options.reestimate_backbone = False
         reference = None
@@ -57,15 +65,22 @@ if __name__ == "__main__":
                 obs_dist = dict(zip(tags, map(float, dists[1:])))
                 yield (query_name, None, obs_dist)
 
+        start = time.time()
         f = open(options.dist_fp)
         queries = read_dismat(f)
+        logging.info(
+            "[%s] Query sequences are prepared in %.3f seconds." % (time.strftime("%H:%M:%S"), (time.time() - start)))
 
+    start = time.time()
     f = open(options.tree_fp)
     orig_tree_string = f.readline()
     f.close()
+    logging.info(
+        "[%s] Read tree string in %.3f seconds." % (time.strftime("%H:%M:%S"), (time.time() - start)))
 
     if options.reestimate_backbone:  # reestimate backbone branch lengths
         assert options.ref_fp
+        start = time.time()
         orig_branch_tree = ts.read_tree(orig_tree_string, schema='newick')
         orig_branch_tree.resolve_polytomies()
         orig_branch_resolved_fp = tempfile.NamedTemporaryFile(delete=True, mode='w+t').name
@@ -92,10 +107,16 @@ if __name__ == "__main__":
             with Popen(s, stdout=PIPE, stdin=rf, stderr=sys.stderr) as p:
                 tree_string = p.stdout.read().decode('utf-8')
                 print(tree_string)
+        logging.info(
+            "[%s] Reestimated branch lengths in %.3f seconds." % (time.strftime("%H:%M:%S"), (time.time() - start)))
     else:
         tree_string = orig_tree_string
 
+    start = time.time()
     first_read_tree = ts.read_tree(tree_string, schema='newick')
+    logging.info(
+        "[%s] Tree is parsed in %.3f seconds." % (time.strftime("%H:%M:%S"), (time.time() - start)))
+    start = time.time()
     util.index_edges(first_read_tree)
     util.set_levels(first_read_tree)
 
@@ -106,10 +127,10 @@ if __name__ == "__main__":
         name_to_node_map[l.label] = l
 
     extended_newick_string = extended_newick(first_read_tree)
-    # util.index_edges(first_read_tree)
-    # util.set_levels(first_read_tree)
-    # treecore_frag = Core(first_read_tree)
+    logging.info(
+        "[%s] Tree preprocessing is completed in %.3f seconds." % (time.strftime("%H:%M:%S"), (time.time() - start)))
 
+    startq = time.time()
     queryworker = PoolQueryWorker()
     queryworker.set_class_attributes(reference, options, name_to_node_map)
     if _platform == "win32" or _platform == "win64" or _platform == "msys":
@@ -119,7 +140,8 @@ if __name__ == "__main__":
     else:
         pool = mp.Pool(options.num_thread)
         results = pool.starmap(queryworker.runquery, queries)
-
+    logging.info(
+        "[%s] Processed all queries in %.3f seconds." % (time.strftime("%H:%M:%S"), (time.time() - startq)))
     result = join_jplace(results)
     result["tree"] = extended_newick_string
     result["metadata"] = {"invocation": " ".join(sys.argv)}
@@ -131,4 +153,7 @@ if __name__ == "__main__":
     else:
         f = sys.stdout
     f.write(json.dumps(result, sort_keys=True, indent=4))
+    f.write("\n")
     f.close()
+    logging.warning(
+        "[%s] APPLES finished in %.3f seconds." % (time.strftime("%H:%M:%S"), (time.time() - startb)))
