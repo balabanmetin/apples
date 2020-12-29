@@ -5,7 +5,7 @@ from apples.PoolQueryWorker import PoolQueryWorker
 from apples.fasta2dic import fasta2dic
 from apples import util
 from apples.Reference import Reduced_reference
-from apples.options import options_config
+from apples.options_run import options_config
 import multiprocessing as mp
 from apples.jutil import extended_newick, join_jplace
 import sys
