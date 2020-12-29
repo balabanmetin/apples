@@ -26,4 +26,11 @@ def options_config():
                            "output by softwares like SEPP.")
 
     (options, args) = parser.parse()
+
+    if options.dist_fp:
+        options.reestimate_backbone = False
+        if options.ref_fp:
+            if options.dist_fp:
+                raise ValueError('Input should be either an alignment or a distance matrix, but not both!')
+
     return options, args

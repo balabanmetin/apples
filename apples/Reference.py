@@ -36,10 +36,9 @@ class Full_reference(Reference):
 
 
 class Reduced_reference(Reference):
-    def __init__(self, ref_fp, prot_flag, tree_file, threshold, baseobs):
+    def __init__(self, ref_fp, prot_flag, tree_file, threshold):
         Reference.__init__(self, ref_fp, prot_flag)
         self.threshold = threshold
-        self.baseobs = baseobs
 
         start = time.time()
         tc_output_file = tempfile.NamedTemporaryFile(delete=True, mode='w+t').name
@@ -66,6 +65,9 @@ class Reduced_reference(Reference):
         logging.info(
             "[%s] Representative sequences are computed in %.3f seconds." %
             (time.strftime("%H:%M:%S"), (time.time() - start)))
+
+    def set_baseobs(self, baseobs):
+        self.baseobs = baseobs
 
     def _find_representative(self, group):
 

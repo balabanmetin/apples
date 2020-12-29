@@ -19,9 +19,9 @@ class options_basic(OptionParser):
         self.add_option("-T", "--threads", dest="num_thread", type=int, default=0,
                         help="number of cores used in placement. "
                              "0 to use all cores in the running machine", metavar="NUMBER")
-        self.add_option("-f", "--filter", dest="filt_threshold", type=int, default=0.2,
+        self.add_option("-f", "--filter", dest="filt_threshold", type=float, default=0.2,
                         help="ignores distances higher than the given threshold. "
-                             "Use when long distances have a high bias or variance.", metavar="NUMBER")
+                             "Improves accuracy when long distances have a high bias or variance.", metavar="NUMBER")
         self.add_option("-D", "--disable-reestimation", dest="disable_reestimation", action='store_true',
                         default=False,
                         help="disables minimum evolution branch length reestimation of the backbone tree. "

@@ -12,9 +12,7 @@ import sys
 import json
 import treeswift as ts
 from sys import platform as _platform
-import tempfile
-from subprocess import Popen, PIPE
-import pkg_resources
+from apples.reestimate_backbone import reestimate_backbone
 import time
 import logging
 
@@ -25,13 +23,14 @@ if __name__ == "__main__":
     options, args = options_config()
     logging.info("[%s] Options are parsed." % time.strftime("%H:%M:%S"))
 
-    if options.ref_fp:
-        if options.dist_fp:
-            raise ValueError('Input should be either an alignment or a distance matrix, but not both!')
+    if options.reestimate_backbone:  # reestimate backbone branch lengths
+        reestimate_backbone(options)
 
+    if options.ref_fp:
         start = time.time()
         reference = Reduced_reference(options.ref_fp, options.protein_seqs, options.tree_fp,
-                                      options.filt_threshold, options.base_observation_threshold)
+                                      options.filt_threshold)
+        reference.set_baseobs(options.base_observation_threshold)
         logging.info(
             "[%s] Reduced reference is computed in %.3f seconds." % (time.strftime("%H:%M:%S"),(time.time() - start)))
 
@@ -78,42 +77,8 @@ if __name__ == "__main__":
     logging.info(
         "[%s] Read tree string in %.3f seconds." % (time.strftime("%H:%M:%S"), (time.time() - start)))
 
-    if options.reestimate_backbone:  # reestimate backbone branch lengths
-        assert options.ref_fp
-        start = time.time()
-        orig_branch_tree = ts.read_tree(orig_tree_string, schema='newick')
-        orig_branch_tree.resolve_polytomies()
-        orig_branch_resolved_fp = tempfile.NamedTemporaryFile(delete=True, mode='w+t').name
-        orig_branch_tree.write_tree_newick(orig_branch_resolved_fp)
-
-        if _platform == "darwin":
-            fasttree_exec = pkg_resources.resource_filename('apples', "tools/FastTree-darwin")
-        elif _platform == "linux" or _platform == "linux2":
-            fasttree_exec = pkg_resources.resource_filename('apples', "tools/FastTree-linux")
-        elif _platform == "win32" or _platform == "win64" or _platform == "msys":
-            fasttree_exec = pkg_resources.resource_filename('apples', "tools/FastTree.exe")
-        else:
-            # Unrecognised system
-            raise ValueError('Your system {} is not supported yet.' % _platform)
-
-        bb_fp = tempfile.NamedTemporaryFile(delete=True, mode='w+t')
-        fasttree_log = tempfile.NamedTemporaryFile(delete=True, mode='w+t').name
-
-        s = [fasttree_exec, "-nosupport", "-nome", "-noml", "-log", fasttree_log,
-             "-intree", orig_branch_resolved_fp]
-        if not options.protein_seqs:
-            s.append("-nt")
-        with open(options.ref_fp, "r") as rf:
-            with Popen(s, stdout=PIPE, stdin=rf, stderr=sys.stderr) as p:
-                tree_string = p.stdout.read().decode('utf-8')
-                print(tree_string)
-        logging.info(
-            "[%s] Reestimated branch lengths in %.3f seconds." % (time.strftime("%H:%M:%S"), (time.time() - start)))
-    else:
-        tree_string = orig_tree_string
-
     start = time.time()
-    first_read_tree = ts.read_tree(tree_string, schema='newick')
+    first_read_tree = ts.read_tree(options.tree_fp, schema='newick')
     logging.info(
         "[%s] Tree is parsed in %.3f seconds." % (time.strftime("%H:%M:%S"), (time.time() - start)))
     start = time.time()
