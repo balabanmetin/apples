@@ -1,8 +1,11 @@
-from apples.options_basic import options_basic
+from apples.OptionsBasic import OptionsBasic
+import logging
 
 
 def options_config():
-    parser = options_basic("jplace")
+    parser = OptionsBasic("jplace")
+    parser.add_option("-a", "--database", dest="database_fp", metavar="FILE",
+                      help="path to the APPLES database")
     parser.add_option("-d", "--distances", dest="dist_fp",
                       help="path to the table of observed distances", metavar="FILE")
     parser.add_option("-x", "--extendedref", dest="extended_ref_fp",
@@ -30,7 +33,21 @@ def options_config():
     if options.dist_fp:
         options.reestimate_backbone = False
         if options.ref_fp:
-            if options.dist_fp:
-                raise ValueError('Input should be either an alignment or a distance matrix, but not both!')
+            raise ValueError('Input should be either an alignment or a distance matrix, but not both!')
+        if options.database_fp:
+            logging.warning("Input contains both an APPLES database and a distance matrix. Database sequences "
+                            "will be ignored. Database phylogeny will be used if user did not provide a phylogeny "
+                            "(using -t option). ")
+
+    if options.database_fp:
+        if options.ref_fp:
+            raise ValueError('Input should be either an alignment or a APPLES database file, but not both!')
+        if options.tree_fp:
+            logging.warning("Input contains both an APPLES database and a tree file. User provided tree has "
+                            "higher priority and therefore will be used.")
+    if not options.tree_fp and not options.database_fp:
+        raise ValueError('No input backbone tree provided by user.')
+    if options.query_fp and options.extended_ref_fp:
+        raise ValueError('Input should be either an extended alignment or a query alignment, but not both!')
 
     return options, args

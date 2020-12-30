@@ -35,7 +35,7 @@ def reestimate_backbone(options):
     if not options.protein_seqs:
         s.append("-nt")
     with open(options.ref_fp, "r") as rf:
-        with Popen(s, stdout=bb_fp, stdin=rf, stderr=sys.stderr) as p:
+        with Popen(s, stdout=bb_fp, stdin=rf, stderr=sys.stderr):
             options.tree_fp = bb_fp.name
             # tree_string = p.stdout.read().decode('utf-8')
             # print(tree_string)

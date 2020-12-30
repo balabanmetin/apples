@@ -8,10 +8,12 @@ from apples.fasta2dic import fasta2dic
 import heapq
 import time
 import logging
+import multiprocessing as mp
+
 
 class Reference(ABC):
     """prot flag true if protein sequences, false for nucleotide sequences"""
-    def __init__(self, ref_fp, prot_flag):
+    def __init__(self, ref_fp: str, prot_flag: bool):
         self.refs = fasta2dic(ref_fp, prot_flag, False)  # never mask low confidence bases in the reference
         self.prot_flag = prot_flag
 
@@ -19,13 +21,14 @@ class Reference(ABC):
             self.dist_function = scoredist
         else:
             self.dist_function = jc69
+
     @abstractmethod
     def get_obs_dist(self, query_seq, query_name):
         pass
 
 
-class Full_reference(Reference):
-    def __init__(self, ref_fp, prot_flag):
+class FullReference(Reference):
+    def __init__(self, ref_fp: str, prot_flag: bool):
         Reference.__init__(self, ref_fp, prot_flag)
 
     def get_obs_dist(self, query_seq, query_tag):
@@ -35,8 +38,8 @@ class Full_reference(Reference):
         return obs_dist
 
 
-class Reduced_reference(Reference):
-    def __init__(self, ref_fp, prot_flag, tree_file, threshold):
+class ReducedReference(Reference):
+    def __init__(self, ref_fp, prot_flag, tree_file, threshold, num_thread):
         Reference.__init__(self, ref_fp, prot_flag)
         self.threshold = threshold
 
@@ -49,22 +52,25 @@ class Reduced_reference(Reference):
             "[%s] TreeCluster is completed in %.3f seconds." % (time.strftime("%H:%M:%S"),(time.time() - start)))
 
         start = time.time()
-        self.representatives = []
         with open(tc_output_file, "r") as tc_output:
             tc_output.readline()
             lines = map(lambda x: x.strip().split('\t'), tc_output.readlines())
             lines_sorted = sorted(lines, key=lambda x: x[1])
-            for key, group in itertools.groupby(lines_sorted, lambda x: x[1]):
-                # print(key, list(group))
-                if key == "-1":
-                    for thing in group:
-                        self.representatives.append((self.refs[thing[0]], [thing[0]]))
-                else:
-                    things = [g[0] for g in group]
-                    self.representatives.append((self._find_representative(things), things))
+
+            pool = mp.Pool(num_thread)
+            clusters = [(key, [i[0] for i in list(group)]) for key, group in itertools.groupby(lines_sorted, lambda x: x[1])]
+            self.representatives = [item for sublist in pool.map(self._repr_per_group, clusters) for item in sublist]
+
         logging.info(
             "[%s] Representative sequences are computed in %.3f seconds." %
             (time.strftime("%H:%M:%S"), (time.time() - start)))
+
+    def _repr_per_group(self, cluster):
+        key, group = cluster
+        if key == "-1":
+            return [(self.refs[thing], [thing]) for thing in group]
+        else:
+            return [(self._find_representative(group), group)]
 
     def set_baseobs(self, baseobs):
         self.baseobs = baseobs

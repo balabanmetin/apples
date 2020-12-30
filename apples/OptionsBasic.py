@@ -3,7 +3,7 @@ from multiprocessing import cpu_count
 import logging
 
 
-class options_basic(OptionParser):
+class OptionsBasic(OptionParser):
     def __init__(self, output_filetype):
         super().__init__()
         self.add_option("-t", "--tree", dest="tree_fp",
