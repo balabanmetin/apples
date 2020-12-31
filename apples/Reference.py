@@ -2,8 +2,9 @@ import itertools
 import subprocess
 import tempfile
 from abc import ABC, abstractmethod
+
+from apples.PoolRepresentativeWorker import PoolRepresentativeWorker
 from apples.distance import *
-import numpy as np
 from apples.fasta2dic import fasta2dic
 import heapq
 import time
@@ -56,49 +57,23 @@ class ReducedReference(Reference):
             tc_output.readline()
             lines = map(lambda x: x.strip().split('\t'), tc_output.readlines())
             lines_sorted = sorted(lines, key=lambda x: x[1])
-
-            pool = mp.Pool(num_thread)
             clusters = [(key, [i[0] for i in list(group)]) for key, group in itertools.groupby(lines_sorted, lambda x: x[1])]
-            self.representatives = [item for sublist in pool.map(self._repr_per_group, clusters) for item in sublist]
+            partition_worker = PoolRepresentativeWorker()
+            partition_worker.set_class_attributes(self.refs, self.prot_flag)
+            pool = mp.Pool(num_thread)
+            results = pool.map(partition_worker.worker, clusters)
+            pool.close()
+            pool.join()
+            self.representatives = [item for sublist in results for item in sublist]
 
         logging.info(
             "[%s] Representative sequences are computed in %.3f seconds." %
             (time.strftime("%H:%M:%S"), (time.time() - start)))
 
-    def _repr_per_group(self, cluster):
-        key, group = cluster
-        if key == "-1":
-            return [(self.refs[thing], [thing]) for thing in group]
-        else:
-            return [(self._find_representative(group), group)]
 
     def set_baseobs(self, baseobs):
         self.baseobs = baseobs
 
-    def _find_representative(self, group):
-
-        if self.prot_flag:
-            alphabet = np.array(['A', 'C', 'D', 'E', 'F',
-                                 'G', 'H', 'I', 'K', 'L',
-                                 'M', 'N', 'P', 'Q', 'R',
-                                 'S', 'T', 'V', 'W', 'Y', '-'], dtype="S1")
-
-        else:
-            alphabet = np.array([b'A', b'C', b'G', b'T', b'-'], dtype="S1")
-
-        lookup = {n: i for i, n in enumerate(alphabet)}
-
-        def get_consensus(arr):
-            n = arr.shape[1]
-            frequency_matrix = np.zeros((len(alphabet), n))
-            for dna in arr:
-                for base in alphabet:
-                    frequency_matrix[lookup[base]] += dna == base
-            return alphabet[np.argmax(frequency_matrix, axis=0)]
-
-        group_seqs = [self.refs[g] for g in group]
-        group_mat = np.array(np.vstack(group_seqs))
-        return get_consensus(group_mat)
 
     def get_obs_dist(self, query_seq, query_tag):
         obs_dist = {}
