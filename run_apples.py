@@ -22,9 +22,8 @@ if __name__ == "__main__":
     options, args = options_config()
     logging.info("[%s] Options are parsed." % time.strftime("%H:%M:%S"))
 
-    if not options.tree_fp:
+    if options.database_fp:
         # unpickle tree from database
-        assert options.database_fp
         start = time.time()
         fdtb = open(options.database_fp, "rb")
         up = pickle.Unpickler(fdtb)
@@ -34,7 +33,8 @@ if __name__ == "__main__":
         logging.info(
             "[%s] Tree is loaded from APPLES database in %.3f seconds." % (
                 time.strftime("%H:%M:%S"), (time.time() - start)))
-    else:
+
+    if options.tree_fp:
         first_read_tree, name_to_node_map, extended_newick_string = prepareTree(options)
 
     if options.dist_fp:
