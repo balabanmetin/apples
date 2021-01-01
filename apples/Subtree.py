@@ -14,8 +14,9 @@ class Subtree:
     def validate_edges(self, obs_dist, name_to_node_map, valid):
         ps = PrioritySet()
         for k, v in obs_dist.items():
-            ps.add(name_to_node_map[k],
-                   -name_to_node_map[k].level)  # adding minus to give priority to the largest level
+            if k in name_to_node_map:
+                ps.add(name_to_node_map[k],
+                       -name_to_node_map[k].level)  # adding minus to give priority to the largest level
 
         count = 0
         while len(ps) > 1:
