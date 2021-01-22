@@ -25,17 +25,16 @@ def reestimate_backbone(options):
     if rooted:
         left, right = orig_branch_tree.root.children
         if left.children:
-            thetwo = [next(c.traverse_postorder()) for c in left.children]
-            theone = [next(c.traverse_postorder()) for c in right.children][:1]
+            thetwo = [next(c.traverse_postorder(internal=False)) for c in left.children]
+            theone = [next(right.traverse_postorder(internal=False))]
             lengthtwoside = left.edge_length
             lengthoneside = right.edge_length
         else:
-            thetwo = [next(c.traverse_postorder()) for c in right.children]
-            theone = [next(c.traverse_postorder()) for c in left.children][:1]
+            thetwo = [next(c.traverse_postorder(internal=False)) for c in right.children]
+            theone = [next(left.traverse_postorder(internal=False))]
             lengthtwoside = right.edge_length
             lengthoneside = left.edge_length
 
-    print_ident(orig_branch_tree)
     orig_branch_resolved_fp = tempfile.NamedTemporaryFile(delete=True, mode='w+t').name
     orig_branch_tree.write_tree_newick(orig_branch_resolved_fp)
 
