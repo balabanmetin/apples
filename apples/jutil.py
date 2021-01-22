@@ -13,14 +13,15 @@ def join_jplace(lst):
 def extended_newick(tree):
     """Newick printing algorithm is based on treeswift"""
 
-    if tree.root.edge_length is None:
-        suffix = ''
-    elif isinstance(tree.root.edge_length, int):
-        suffix = ':%d' % tree.root.edge_length
-    elif isinstance(tree.root.edge_length, float) and tree.root.edge_length.is_integer():
-        suffix = ':%d' % int(tree.root.edge_length)
-    else:
-        suffix = ':%s' % str(tree.root.edge_length)
+    # if tree.root.edge_length is None:
+    #     suffix = ''
+    # elif isinstance(tree.root.edge_length, int):
+    #     suffix = ':%d' % tree.root.edge_length
+    # elif isinstance(tree.root.edge_length, float) and tree.root.edge_length.is_integer():
+    #     suffix = ':%d' % int(tree.root.edge_length)
+    # else:
+    #     suffix = ':%s' % str(tree.root.edge_length)
+    suffix = ''
     strng = _nodeprint(tree.root)
     if tree.is_rooted:
         return '[&R] %s%s;' % (strng, suffix)

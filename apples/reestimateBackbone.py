@@ -2,17 +2,40 @@ import sys
 import treeswift as ts
 from sys import platform as _platform
 import tempfile
-from subprocess import Popen
+from subprocess import Popen, PIPE
 import pkg_resources
 import time
 import logging
 
+def print_ident(tree):
+    for i in tree.root.children:
+        print(len(list(i.traverse_postorder())),)
+    print("")
 
 def reestimate_backbone(options):
     assert options.ref_fp
     start = time.time()
     orig_branch_tree = ts.read_tree(options.tree_fp, schema='newick')
+    if len(orig_branch_tree.root.children) > 2:  # 3
+        rooted = False
+    else:
+        rooted = True
+    orig_branch_tree.suppress_unifurcations()
     orig_branch_tree.resolve_polytomies()
+    if rooted:
+        left, right = orig_branch_tree.root.children
+        if left.children:
+            thetwo = [next(c.traverse_postorder()) for c in left.children]
+            theone = [next(c.traverse_postorder()) for c in right.children][:1]
+            lengthtwoside = left.edge_length
+            lengthoneside = right.edge_length
+        else:
+            thetwo = [next(c.traverse_postorder()) for c in right.children]
+            theone = [next(c.traverse_postorder()) for c in left.children][:1]
+            lengthtwoside = right.edge_length
+            lengthoneside = left.edge_length
+
+    print_ident(orig_branch_tree)
     orig_branch_resolved_fp = tempfile.NamedTemporaryFile(delete=True, mode='w+t').name
     orig_branch_tree.write_tree_newick(orig_branch_resolved_fp)
 
@@ -35,9 +58,29 @@ def reestimate_backbone(options):
     if not options.protein_seqs:
         s.append("-nt")
     with open(options.ref_fp, "r") as rf:
-        with Popen(s, stdout=bb_fp, stdin=rf, stderr=sys.stderr):
-            options.tree_fp = bb_fp.name
-            # tree_string = p.stdout.read().decode('utf-8')
-            # print(tree_string)
+        with Popen(s, stdout=PIPE, stdin=rf, stderr=sys.stderr) as p:
+            #options.tree_fp = bb_fp.name
+            tree_string = p.stdout.read().decode('utf-8')
+            if rooted:
+                ft = ts.read_tree_newick(tree_string)
+                for n in ft.traverse_postorder(internal=False):
+                    if n.label == theone[0].label:
+                        theone_inft = n
+                        break
+                ft.reroot(theone_inft)
+                mrca = ft.mrca([n.label for n in thetwo])
+                mrca_edge_length = mrca.edge_length
+                ft.reroot(mrca, length=mrca_edge_length/2)
+                if lengthtwoside+lengthoneside > 0:
+                    for i in range(2):
+                        if ft.root.children[i] == mrca:
+                            ft.root.children[i].edge_length = mrca_edge_length*lengthtwoside/(lengthtwoside+lengthoneside)
+                            ft.root.children[1-i].edge_length = mrca_edge_length*lengthoneside/(lengthtwoside+lengthoneside)
+                ft.is_rooted = False
+                tree_string = str(ft)
+            with open(bb_fp.name, "w") as ntree:
+                ntree.write(tree_string.strip())
+                ntree.write("\n")
+                options.tree_fp = bb_fp.name
     logging.info(
         "[%s] Reestimated branch lengths in %.3f seconds." % (time.strftime("%H:%M:%S"), (time.time() - start)))
