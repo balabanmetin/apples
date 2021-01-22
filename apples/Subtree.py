@@ -9,7 +9,6 @@ class Subtree:
         self.root = self.validate_edges(obs_dist, name_to_node_map, True)
         self.obs_dist = obs_dist
         self.name_to_node_map = name_to_node_map
-        self.num_nodes = 0
 
     def validate_edges(self, obs_dist, name_to_node_map, valid):
         ps = PrioritySet()
