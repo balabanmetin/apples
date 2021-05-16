@@ -81,7 +81,7 @@ class PoolQueryWorker:
         jplace["placements"][0]["p"] = [presult]
         if potential_misplacement_flag == 1:
             logging.warning(
-                "Best placement for query sequence [%s] has zero pendant edge length and placed at an internal node "
+                "Best placement for query sequence %s has zero pendant edge length and placed at an internal node "
                 "with a non-zero least squares error. This is a potential misplacement." % query_name)
         subtree.unroll_changes()
 
