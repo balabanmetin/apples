@@ -97,6 +97,7 @@ if __name__ == "__main__":
         results = pool.starmap(queryworker.runquery, queries)
     logging.info(
         "[%s] Processed all queries in %.3f seconds." % (time.strftime("%H:%M:%S"), (time.time() - startq)))
+
     result = join_jplace(results)
     result["tree"] = extended_newick_string
     result["metadata"] = {"invocation": " ".join(sys.argv)}

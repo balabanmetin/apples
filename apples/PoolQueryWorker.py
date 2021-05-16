@@ -77,7 +77,12 @@ class PoolQueryWorker:
         alg.dp_frag()
 
         alg.placement_per_edge(cls.options.negative_branch)
-        jplace["placements"][0]["p"] = [alg.placement(cls.options.criterion_name)]
+        presult, potential_misplacement_flag = alg.placement(cls.options.criterion_name)
+        jplace["placements"][0]["p"] = [presult]
+        if potential_misplacement_flag == 1:
+            logging.warning(
+                "Best placement for query sequence [%s] has zero pendant edge length and placed at an internal node "
+                "with a non-zero least squares error. This is a potential misplacement." % query_name)
         subtree.unroll_changes()
 
         end_dp = time.time() - start_dp

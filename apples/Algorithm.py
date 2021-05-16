@@ -49,5 +49,10 @@ class Algorithm(ABC):
             pendant = placed_edge.x_1
             relative_distal = placed_edge.x_2
 
-        return [placed_edge.edge_index, self.error_per_edge(placed_edge),
-                1, placed_edge.edge_length - relative_distal, pendant]
+        e_per_edge = self.error_per_edge(placed_edge)
+        if pendant == 0 and e_per_edge > 0 and (relative_distal == 0 or relative_distal == placed_edge.edge_length):
+            potential_misplacement_flag = 1
+        else:
+            potential_misplacement_flag = 0
+        return ([placed_edge.edge_index, e_per_edge,
+                1, placed_edge.edge_length - relative_distal, pendant], potential_misplacement_flag)
