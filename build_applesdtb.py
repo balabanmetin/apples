@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from apples.Reference import ReducedReference
 from apples.OptionsBuild import options_config
 import multiprocessing as mp
