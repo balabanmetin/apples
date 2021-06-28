@@ -79,17 +79,15 @@ class ReducedReference(Reference):
         obs_dist = {}
         obs_num = 0
         representative_dists = []
-        i = 0
-        for consensus_seq, group in self.representatives:
+        for i, content in enumerate(self.representatives):
+            consensus_seq, group = content  
             dist = self.dist_function(query_seq, consensus_seq)
-            if dist < 0: # invalid distance
-                continue
-            representative_dists.append((dist, i))
-            i += 1
+            if dist >= 0: # valid distance
+                representative_dists.append((dist, i))
         heapq.heapify(representative_dists)
         while representative_dists:
             head = heapq.heappop(representative_dists)
-            if head[0] <= self.threshold or (head[0] > self.threshold and obs_num < self.baseobs):
+            if head[0] <= self.threshold or obs_num < self.baseobs:
                 _, group = self.representatives[head[1]]
                 for thing in group:
                     thing_d = self.dist_function(query_seq, self.refs[thing])
@@ -98,5 +96,6 @@ class ReducedReference(Reference):
                         obs_num += 1
             else:
                 break
-
+        # for k,v in obs_dist.items():
+        #    print(k+"\t"+str(v))
         return obs_dist
