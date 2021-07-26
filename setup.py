@@ -1,8 +1,8 @@
-from setuptools import setup,find_packages
-
+from setuptools import setup, find_packages
+from apples.version import VERSION_NUM
 setup(
         name='apples',    # This is the name of your PyPI-package.
-        version='2.0.4',    # Update the version number for new releases
+        version=VERSION_NUM,    # Update the version number for new releases
         # The name of your script, and also the command you'll be using for calling it
         # Also other executables needed
         scripts=['run_apples.py','build_applesdtb.py',],

@@ -1,6 +1,7 @@
 from optparse import OptionParser
 from multiprocessing import cpu_count
 import logging
+from apples.version import VERSION_NUM
 
 
 class OptionsBasic(OptionParser):
@@ -28,9 +29,14 @@ class OptionsBasic(OptionParser):
                              "This option has no effect if input alignment is not provided.")
         self.add_option("--debug", dest="debug_mode", action='store_true', default=False,
                         help="Enables debug mode.")
+        self.add_option("-v", "--version", dest="print_version", action='store_true', default=False,
+                        help="print APPLES version number. ")
 
     def parse(self):
         (options, args) = self.parse_args()
+        if options.print_version:
+            print("APPLES version " + VERSION_NUM, flush=True)
+            exit(0)
 
         options.reestimate_backbone = not options.disable_reestimation
 
