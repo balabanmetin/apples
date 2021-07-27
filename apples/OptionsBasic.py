@@ -1,8 +1,7 @@
 from optparse import OptionParser
 from multiprocessing import cpu_count
 import logging
-from apples.version import VERSION_NUM
-
+from apples.version import __version__
 
 class OptionsBasic(OptionParser):
     def __init__(self, output_filetype):
@@ -35,7 +34,7 @@ class OptionsBasic(OptionParser):
     def parse(self):
         (options, args) = self.parse_args()
         if options.print_version:
-            print("APPLES version " + VERSION_NUM, flush=True)
+            print("APPLES version " + __version__, flush=True)
             exit(0)
 
         options.reestimate_backbone = not options.disable_reestimation
