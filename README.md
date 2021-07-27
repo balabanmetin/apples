@@ -65,13 +65,15 @@ Output is a jplace file containing placement results for all queries. For more i
 
 ### ! IMPORTANT NOTE !
 
-Backbone tree provided to APPLES has to have its branch lengths estimated using a distance based method such as minimum evolution. This is a requirement for getting good results. We recommend [FastTree2](http://www.microbesonline.org/fasttree/) for re-estimating branch lengths if the backbone tree is estimated using Maximum Likelihood based methods (e.g. RAxML, PASTA). Until we support re-estimation of branch lengths within APPLES, we are expecting the user to run the following  FastTree2 command explicitly before performing any placement:
+Backbone tree provided to APPLES has to have its branch lengths estimated using a distance based method such as minimum evolution. This is a requirement for getting good results. We recommend [FastTree2](http://www.microbesonline.org/fasttree/) for re-estimating branch lengths if the backbone tree is estimated using Maximum Likelihood based methods (e.g. RAxML, PASTA). We support re-estimation of branch lengths within APPLES; in fact by default, FastTree is run prior to placement using the following command.
 
 `FastTreeMP -nosupport -nt -nome -noml -log tree.log -intree backbone.nwk < ref.fa > minimum_evo_backbone.nwk`
 
 Then perform placement on the new tree:
 
 `run_apples.py -s ref.fa -q query.fa -t minimum_evo_backbone.nwk`
+
+If you already reestimated the backbone branch lengths, you can skip this step in APPLES using the option "-D" for speedup.
 
 
 ------------------------------------
@@ -80,4 +82,4 @@ Detailed tutorial on how to run APPLES on various datasets
 
 Please refer to the tutorial below for detailed examples of usage in alignment-based and alignment-free settings.
 
-[https://github.com/smirarab/tutorials/blob/master/Skmer+APPLES+tutorial.md](https://github.com/smirarab/tutorials/blob/master/Skmer+APPLES+tutorial.md)
+[https://github.com/smirarab/tutorials/blob/master/Skmer-APPLES-tutorial.md](https://github.com/smirarab/tutorials/blob/master/Skmer-APPLES-tutorial.md)
