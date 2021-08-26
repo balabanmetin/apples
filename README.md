@@ -40,19 +40,21 @@ For listing all options, run the following command:
 Input & Output Specification
 ---------------------------------------------
 
-Input reference (backbone) tree must be in newick format. APPLES can perform placements based on FASTA alignments of __nucleotide sequences__ (functionality for amino acid sequences will be added soon) or a distance table.
+Input reference (backbone) tree must be in newick format. APPLES can perform placements based on FASTA alignments of nucleotide or amino acid sequences or a distance table.
 
 APPLES input can be either
 
-* An alignment of query sequences to the backbone. In this case, by default, hamming distances will be computed using pairwise comparison and will be then corrected using then JC69 model. 
+* An alignment of query sequences to the backbone. In this case, by default, hamming distances will be computed using pairwise comparison and will be then corrected using then JC69 model. If the input is amino acid alignment, APPLES uses scoredist model instead.
 * A distance matrix computed using other tools. 
 
 #### Input an alignment 
 APPLES require a reference alignment and a query alignment. All species in the backbone tree must have a corresponding sequence in the reference alignment. You can find an example reference alignment and query alignment for ten query sequences under [data/ref.fa](data/ref.fa) and [data/query.fa](data/query.fa) respectively. 
 
-You can run APPLES with the following command on the example input alignment dataset:
+You can run APPLES with the following command on the example input nucleotide alignment dataset:
 
 `run_apples.py -s data/ref.fa -q data/query.fa -t data/backbone.nwk`
+
+If input sequences are amino acid, use the flag `-p`.
 
 #### Input a distance matrix
 The format for distance matrix is a tab delimited csv file with column and row headers. Rows should represent query sequences and columns should represent reference sequences. You can find an example distance matrix for ten query sequences under [data/dist.mat](data/dist.mat). 
