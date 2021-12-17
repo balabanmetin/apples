@@ -21,8 +21,20 @@ def reestimate_backbone(options):
     else:
         rooted = True
     orig_branch_tree.suppress_unifurcations()
-    orig_branch_tree.resolve_polytomies()
-    if rooted:
+    if len(orig_branch_tree.root.children) > 3:
+        # polytomy at the root
+        orig_branch_tree.resolve_polytomies()
+    else:
+        # root node is ok, resolve the other nodes
+        for i in orig_branch_tree.root.children:
+            i.resolve_polytomies()
+    all_branches_have_length = True
+    for n in orig_branch_tree.traverse_postorder(internal=True, leaves=True):
+        if not n.is_root() and n.edge_length is None:
+            all_branches_have_length = False
+            break
+
+    if rooted and all_branches_have_length:
         left, right = orig_branch_tree.root.children
         if left.children:
             thetwo = [next(c.traverse_postorder(internal=False)) for c in left.children]
@@ -60,7 +72,7 @@ def reestimate_backbone(options):
         with Popen(s, stdout=PIPE, stdin=rf, stderr=sys.stderr) as p:
             #options.tree_fp = bb_fp.name
             tree_string = p.stdout.read().decode('utf-8')
-            if rooted:
+            if rooted and all_branches_have_length:
                 ft = ts.read_tree_newick(tree_string)
                 for n in ft.traverse_postorder(internal=False):
                     if n.label == theone[0].label:
