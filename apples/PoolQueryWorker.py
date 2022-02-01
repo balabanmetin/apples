@@ -80,9 +80,15 @@ class PoolQueryWorker:
         presult, potential_misplacement_flag = alg.placement(cls.options.criterion_name)
         jplace["placements"][0]["p"] = [presult]
         if potential_misplacement_flag == 1:
+            if cls.options.exclude_intplace:
+                jplace["placements"][0]["p"][0][0] = -1
+                ignoredprompt = " Consequently, this sequence is ignored (no output)."
+            else:
+                ignoredprompt = ""
             logging.warning(
                 "Best placement for query sequence %s has zero pendant edge length and placed at an internal node "
-                "with a non-zero least squares error. This is a potential misplacement." % query_name)
+                "with a non-zero least squares error. This is a potential misplacement.%s" % (query_name, ignoredprompt))
+
         subtree.unroll_changes()
 
         end_dp = time.time() - start_dp

@@ -27,6 +27,9 @@ def options_config():
     parser.add_option("-X", "--mask", dest="mask_lowconfidence", action='store_true', default=False,
                       help="masks low confidence characters in the alignments indicated by lowercase characters "
                            "output by softwares like SEPP.")
+    parser.add_option("--exclude", dest="exclude_intplace", action='store_true', default=False,
+                      help="exclude queries placed on the internal nodes in jplace file.")
+
 
     (options, args) = parser.parse()
 
