@@ -85,3 +85,9 @@ Detailed tutorial on how to run APPLES on various datasets
 Please refer to the tutorial below for detailed examples of usage in alignment-based and alignment-free settings.
 
 [https://github.com/smirarab/tutorials/blob/master/Skmer-APPLES-tutorial.md](https://github.com/smirarab/tutorials/blob/master/Skmer-APPLES-tutorial.md)
+
+-------------
+CHANGELOG
+-------------
+2.0.8
+* Pairwise distance overlap requirement parameter can now be changed by the user.
