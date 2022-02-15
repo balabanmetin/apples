@@ -58,10 +58,10 @@ a2i = np. array([
   ])
 
 
-def scoredist(a2, b2):
+def scoredist(a2, b2, overlap_frac):
     nondash = np.logical_and(a2 != b'-', b2 != b'-')
     valid = np.count_nonzero(nondash)
-    if not valid or valid / len(nondash) < 0.001:
+    if not valid or valid / len(nondash) < overlap_frac:
         return -1.0  # treat as missing data
     a_as_int = a2i[a2.view(np.uint8)]
     b_as_int = a2i[b2.view(np.uint8)]
@@ -88,10 +88,10 @@ def scoredist(a2, b2):
     return cd
 
 
-def jc69(a2, b2):
+def jc69(a2, b2, overlap_frac):
     nondash = np.logical_and(a2 != b'-', b2 != b'-')
     valid = np.count_nonzero(nondash)
-    if not valid or valid / len(nondash) < 0.001:
+    if not valid or valid / len(nondash) < overlap_frac:
         return -1.0  # treat as missing data
     p = np.count_nonzero(np.logical_and(a2 != b2, nondash)) * 1.0 / valid
     if (p - np.finfo(float).eps < 0):

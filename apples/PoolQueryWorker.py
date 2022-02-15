@@ -29,7 +29,7 @@ class PoolQueryWorker:
 
         start_dist = time.time()
         if not obs_dist:
-            obs_dist = cls.reference.get_obs_dist(query_seq, query_name)
+            obs_dist = cls.reference.get_obs_dist(query_seq, query_name, cls.options.minimum_alignment_overlap)
         else:
             def valid_dists(obs_dist, name_to_node_map):
                 tx = 0
