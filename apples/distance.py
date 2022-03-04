@@ -35,6 +35,35 @@ BLOSUM62 = np.array([
    0, -3, -3, -3, -1, -2, -2, -3, -3,  3,  1, -2,  1, -1, -2, -2,  0, -3, -1,  4,
  ])
 
+#  Matrix made by matblas from blosum45.iij
+#  * column uses minimum score
+#  BLOSUM Clustered Scoring Matrix in 1/3 Bit Units
+#  Blocks Database = /data/blocks_5.0/blocks.dat
+#  Cluster Percentage: >= 45
+#  Entropy =   0.3795, Expected =  -0.2789
+#  A   R   N   D   C   Q   E   G   H   I   L   K   M   F   P   S   T   W   Y   V   b   z   x
+BLOSUM45 = np.array([
+   5, -2, -1, -2, -1, -1, -1,  0, -2, -1, -1, -1, -1, -2, -1,  1,  0, -2, -2,  0,
+  -2,  7,  0, -1, -3,  1,  0, -2,  0, -3, -2,  3, -1, -2, -2, -1, -1, -2, -1, -2,
+  -1,  0,  6,  2, -2,  0,  0,  0,  1, -2, -3,  0, -2, -2, -2,  1,  0, -4, -2, -3,
+  -2, -1,  2,  7, -3,  0,  2, -1,  0, -4, -3,  0, -3, -4, -1,  0, -1, -4, -2, -3,
+  -1, -3, -2, -3, 12, -3, -3, -3, -3, -3, -2, -3, -2, -2, -4, -1, -1, -5, -3, -1,
+  -1,  1,  0,  0, -3,  6,  2, -2,  1, -2, -2,  1,  0, -4, -1,  0, -1, -2, -1, -3,
+  -1,  0,  0,  2, -3,  2,  6, -2,  0, -3, -2,  1, -2, -3,  0,  0, -1, -3, -2, -3,
+   0, -2,  0, -1, -3, -2, -2,  7, -2, -4, -3, -2, -2, -3, -2,  0, -2, -2, -3, -3,
+  -2,  0,  1,  0, -3,  1,  0, -2, 10, -3, -2, -1,  0, -2, -2, -1, -2, -3,  2, -3,
+  -1, -3, -2, -4, -3, -2, -3, -4, -3,  5,  2, -3,  2,  0, -2, -2, -1, -2,  0,  3,
+  -1, -2, -3, -3, -2, -2, -2, -3, -2,  2,  5, -3,  2,  1, -3, -3, -1, -2,  0,  1,
+  -1,  3,  0,  0, -3,  1,  1, -2, -1, -3, -3,  5, -1, -3, -1, -1, -1, -2, -1, -2,
+  -1, -1, -2, -3, -2,  0, -2, -2,  0,  2,  2, -1,  6,  0, -2, -2, -1, -2,  0,  1,
+  -2, -2, -2, -4, -2, -4, -3, -3, -2,  0,  1, -3,  0,  8, -3, -2, -1,  1,  3,  0,
+  -1, -2, -2, -1, -4, -1,  0, -2, -2, -2, -3, -1, -2, -3,  9, -1, -1, -3, -3, -3,
+   1, -1,  1,  0, -1,  0,  0,  0, -1, -2, -3, -1, -2, -2, -1,  4,  2, -4, -2, -1,
+   0, -1,  0, -1, -1, -1, -1, -2, -2, -1, -1, -1, -1, -1, -1,  2,  5, -3, -1,  0,
+  -2, -2, -4, -4, -5, -2, -3, -2, -3, -2, -2, -2, -2,  1, -3, -4, -3, 15,  3, -3,
+  -2, -1, -2, -2, -3, -1, -2, -3,  2,  0,  0, -1,  0,  3, -3, -2, -1,  3,  8, -1,
+   0, -2, -3, -3, -1, -3, -3, -3, -3,  3,  1, -2,  1,  0, -3, -1,  0, -3, -1,  5,
+   ])
 
 NA=0
 a2i = np. array([
@@ -68,10 +97,11 @@ def scoredist(a2, b2, overlap_frac):
     aa_ind = 21 * a_as_int
     bb_ind = 21 * b_as_int
     ab_ind = 20 * a_as_int + b_as_int
-    expect = -0.5209 * valid
-    aa_tot = np.sum(np.dot(nondash, BLOSUM62[aa_ind]))
-    bb_tot = np.sum(np.dot(nondash, BLOSUM62[bb_ind]))
-    ab_tot = np.sum(np.dot(nondash, BLOSUM62[ab_ind]))
+    #expect = -0.5209 * valid
+    expect = -0.2789 * valid
+    aa_tot = np.sum(np.dot(nondash, BLOSUM45[aa_ind]))
+    bb_tot = np.sum(np.dot(nondash, BLOSUM45[bb_ind]))
+    ab_tot = np.sum(np.dot(nondash, BLOSUM45[ab_ind]))
     maxsc = (aa_tot + bb_tot) / 2.0
     od = (ab_tot - expect) / (maxsc - expect)
     if 0 >= od:
@@ -82,7 +112,7 @@ def scoredist(a2, b2, overlap_frac):
         od = 1.0
 
     cd = -np.log(od)
-    cd = cd * 1.337  # Magic scaling factor optimized for Dayhoff data
+    cd = cd * 1.13  # Magic scaling factor optimized for Dayhoff data
     # if cd > 3.0:
     #     cd = 3.0
     return cd
