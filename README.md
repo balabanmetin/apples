@@ -89,5 +89,8 @@ Please refer to the tutorial below for detailed examples of usage in alignment-b
 -------------
 CHANGELOG
 -------------
+2.0.9
+* Amino acid distances are now computed using the same BLOSUM45 matrix used in FastTree2.
+ 
 2.0.8
 * Pairwise distance overlap requirement parameter can now be changed by the user.
