@@ -6,6 +6,7 @@ from apples.BE import BE
 from apples.BME import BME
 import sys
 from apples.Subtree import Subtree
+import math
 
 
 class PoolQueryWorker:
@@ -44,7 +45,7 @@ class PoolQueryWorker:
             obs_dist = dict(valid_dists(obs_dist, cls.name_to_node_map))
         end_dist = time.time() - start_dist
 
-        if len(obs_dist) <= 2:
+        if len(obs_dist) <= 3:
             start_dp = time.time()
             sys.stderr.write('Taxon {} cannot be placed. At least three non-infinity distances '
                              'should be observed to place a taxon. '
@@ -59,12 +60,33 @@ class PoolQueryWorker:
             return jplace
 
         start_dp = time.time()
+        subtree = Subtree(obs_dist, cls.name_to_node_map, query_name)
+        distr = subtree.edge_contribution_counter()
+        largest_distr = max(list(distr.values()))
+        if largest_distr >= math.floor(math.log2(len(cls.name_to_node_map))):
+            for k,v in reversed(obs_dist.items()):
+                if distr[k] == largest_distr:
+                    #print(query_name, k, largest_distr)
+                    discard_index = k
+                    break
+        else:
+            largest_dist = max(obs_dist.values())
+            for k,v in reversed(obs_dist.items()):
+                if v == largest_dist:
+                    #print(query_name, k, largest_dist)
+                    discard_index = k
+                    break
+        subtree.unroll_changes()
+        del obs_dist[discard_index]
+        subtree = Subtree(obs_dist, cls.name_to_node_map, query_name)
+
+        #print(subtree.query_name, subtree.edge_contribution_counter())
         for k, v in obs_dist.items():
             if v == 0 and k != query_name:
                 jplace["placements"][0]["p"][0][0] = cls.name_to_node_map[k].edge_index
+                subtree.unroll_changes()
                 return jplace
 
-        subtree = Subtree(obs_dist, cls.name_to_node_map)
 
         if cls.options.method_name == "BE":
             alg = BE(subtree)
