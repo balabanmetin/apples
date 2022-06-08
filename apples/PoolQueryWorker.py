@@ -44,8 +44,24 @@ class PoolQueryWorker:
             obs_dist = dict(valid_dists(obs_dist, cls.name_to_node_map))
         end_dist = time.time() - start_dist
 
-        if len(obs_dist) <= 2:
-            start_dp = time.time()
+        start_dp = time.time()
+        to_be_removed = []
+        for k, v in obs_dist.items():
+            if v == 0:
+                if k != query_name:
+                    jplace["placements"][0]["p"][0][0] = cls.name_to_node_map[k].edge_index
+                    return jplace
+                else:
+                    to_be_removed.append(k)
+                    logging.warning("The query named %s exists in the backbone. Changing its name to %s-query."
+                                    % (query_name, query_name))
+                    query_name = query_name + "-query"
+                    jplace["placements"][0]["n"] = [query_name]
+
+        for k in to_be_removed:
+            del obs_dist[k]
+
+        def not_sufficient_distances():
             sys.stderr.write('Taxon {} cannot be placed. At least three non-infinity distances '
                              'should be observed to place a taxon. '
                              'Consequently, this taxon is ignored (no output).\n'.format(query_name))
@@ -58,11 +74,8 @@ class PoolQueryWorker:
                  time.strftime("%H:%M:%S"), query_name, end_dp))
             return jplace
 
-        start_dp = time.time()
-        for k, v in obs_dist.items():
-            if v == 0 and k != query_name:
-                jplace["placements"][0]["p"][0][0] = cls.name_to_node_map[k].edge_index
-                return jplace
+        if len(obs_dist) <= 2:
+            return not_sufficient_distances()
 
         subtree = Subtree(obs_dist, cls.name_to_node_map)
 

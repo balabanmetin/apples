@@ -89,6 +89,10 @@ Please refer to the tutorial below for detailed examples of usage in alignment-b
 -------------
 CHANGELOG
 -------------
+2.0.10
+* APPLES-2 raises a warning when a query sequence is already present in the backbone. 
+APPLES-2 places the query anyway (after adding "-query" suffix on the name), ignoring the record in the backbone.
+ 
 2.0.9
 * Amino acid distances are now computed using the same BLOSUM45 matrix used in FastTree2.
  
