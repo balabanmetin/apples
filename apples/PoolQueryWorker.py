@@ -45,21 +45,18 @@ class PoolQueryWorker:
         end_dist = time.time() - start_dist
 
         start_dp = time.time()
-        to_be_removed = []
+        if query_name in cls.name_to_node_map:
+            if query_name in obs_dist:
+                del obs_dist[query_name]
+            logging.warning("The query named %s exists in the backbone. Changing its name to %s-query."
+                            % (query_name, query_name))
+            query_name = query_name + "-query"
+            jplace["placements"][0]["n"] = [query_name]
+
         for k, v in obs_dist.items():
             if v == 0:
-                if k != query_name:
-                    jplace["placements"][0]["p"][0][0] = cls.name_to_node_map[k].edge_index
-                    return jplace
-                else:
-                    to_be_removed.append(k)
-                    logging.warning("The query named %s exists in the backbone. Changing its name to %s-query."
-                                    % (query_name, query_name))
-                    query_name = query_name + "-query"
-                    jplace["placements"][0]["n"] = [query_name]
-
-        for k in to_be_removed:
-            del obs_dist[k]
+                jplace["placements"][0]["p"][0][0] = cls.name_to_node_map[k].edge_index
+                return jplace
 
         def not_sufficient_distances():
             sys.stderr.write('Taxon {} cannot be placed. At least three non-infinity distances '
