@@ -54,7 +54,19 @@ You can run APPLES with the following command on the example input nucleotide al
 
 `run_apples.py -s data/ref.fa -q data/query.fa -t data/backbone.nwk`
 
+Alternatively, instead of a query alignment, you can input the combined alignment of reference and query sequences (called extended alignment) using the following command:
+
+`run_apples.py -s data/ref.fa -x data/extended_ref.fa -t data/backbone.nwk` 
+
 If input sequences are amino acid, use the flag `-p`.
+
+User can create a package of the reference resources by creating an APPLES-database. This allows saving reference-build time if the reference is frequently used for placement. Create an APPLES-database that includes a reference alignment and a reference tree using the following command:
+
+`build_applesdtb.py -s data/ref.fa -t data/backbone.nwk -o data/apples.dtb`
+
+One can place query sequences on this reference database using the following command:
+
+`run_apples.py -a data/apples.dtb -q data/query.fa`
 
 #### Input a distance matrix
 The format for distance matrix is a tab delimited csv file with column and row headers. Rows should represent query sequences and columns should represent reference sequences. You can find an example distance matrix for ten query sequences under [data/dist.mat](data/dist.mat). 
