@@ -4,6 +4,16 @@ from apples import util
 
 class FM(Algorithm):
     def all_S_values(self):
+        """
+        Calculate and assign the S, Sd_D, Sd_D2, Sd2_D2, S1_D, and S1_D2 values
+        (left-hand side dynamic programming values) for each node in the subtree.
+        It is computing certain summary statistics (S values) for each node in a tree,
+        which will be used to compute the least squares error for the edge.
+        These S values are calculated based on the node's siblings and parent,
+        and they are used in dynamic programming on the tree.
+        The calculations involve updating the S values for each node based on the node's siblings and parent,
+        and the code id traversing the tree in a specific order to perform these calculations
+        """
         subtree = self.subtree
         obs_dist = subtree.obs_dist
         for node in filter(lambda x: x.valid, subtree.traverse_postorder()):
@@ -30,6 +40,15 @@ class FM(Algorithm):
                     node.S1_D2 += child.S1_D2
 
     def all_R_values(self):
+        """
+        Calculate the R values (right-hand side dynamic programming values) for each node in the subtree.
+        It is computing certain summary statistics (R values) for each node in a tree,
+        which will be used to compute the least squares error for the edge.
+        These R values are calculated based on the node's siblings and parent,
+        and they are used in dynamic programming on the tree.
+        The calculations involve updating the R values for each node based on the node's siblings and parent,
+        and the code id traversing the tree in a specific order to perform these calculations
+        """
         subtree = self.subtree
         for node in filter(lambda x: x.valid, subtree.traverse_preorder()):
             node.R, node.Rd_D, node.Rd_D2, node.Rd2_D2, node.R1_D, node.R1_D2 = 6 * [0]
@@ -58,6 +77,12 @@ class FM(Algorithm):
 
     # computes all alternative Fitch-Margoliash placements
     def placement_per_edge(self, negative_branch):
+        """
+        Calculate placement per edge for the given the flag for the negative branches allowed or not.
+        It calculates placement per edge for a given subtree by solving a 2x2 linear system for each node (edge)
+        in the subtree. It calculates two values (implicitly), pendant and distal edge lengths for each edge.
+        The values are stored in the node attributes.
+        """
         for node in filter(lambda x: x.valid, self.subtree.traverse_postorder()):
             a_11 = node.R1_D2 + node.S1_D2
             a_12 = node.R1_D2 - node.S1_D2
@@ -70,6 +95,25 @@ class FM(Algorithm):
     # computes Fitch-Margoliash error (Q value) for a given edge
     @staticmethod
     def error_per_edge(node):
+        """
+        Calculate the error per edge based on the given node attributes and return the result.
+        The error is defined as the sum of the following terms:
+        A = R + S
+        B = 2 * (x_1 + x_2) * Rd_D + 2 * (edge_length + x_1 - x_2) * Sd_D
+        C = (x_1 + x_2) ** 2 * R1_D2 + (edge_length + x_1 - x_2) ** 2 * S1_D2
+        D = -2 * (x_1 + x_2) * R1_D - 2 * (edge_length + x_1 - x_2) * S1_D
+        E = -2 * Rd_D - 2 * Sd_D
+        F = Rd2_D2 + Sd2_D2
+
+        This is derived by writing the least squares objective explicitly.
+
+        Parameters:
+        - node: the node object containing attributes such as valid, R, S, x_1, x_2, Rd_D, Sd_D, edge_length,
+        R1_D2, S1_D2, R1_D, S1_D, Rd_D, Sd_D, Rd2_D2, and Sd2_D2
+
+        Returns:
+        - The calculated error per edge
+        """
         assert node.valid
         A = node.R + node.S
         B = 2 * (node.x_1 + node.x_2) * node.Rd_D2 + 2 * (node.edge_length + node.x_1 - node.x_2) * node.Sd_D2

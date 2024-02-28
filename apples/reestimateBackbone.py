@@ -9,6 +9,9 @@ import logging
 
 
 def print_ident(tree):
+    """
+    Function to print the length of each node's postorder traversal.
+    """
     for i in tree.root.children:
         print(
             len(list(i.traverse_postorder())),
@@ -17,6 +20,14 @@ def print_ident(tree):
 
 
 def reestimate_backbone(options):
+    """
+    This code snippet is a Python function that reestimates the branch lengths of a phylogenetic tree.
+    It reads in a tree from a file, resolves polytomies, checks for branch length completeness,
+    runs a tree estimation program (FastTree) based on the input sequences and fixed tree topology,
+    and then updates the branch lengths of the input tree based on the re-estimated tree.
+    Finally, it logs the time taken for the reestimation process.
+    Internally, FastTree computes branch lengths using distance-based branch lenghts, either JC69 or BLOSUM45.
+    """
     assert options.ref_fp
     start = time.time()
     orig_branch_tree = ts.read_tree(options.tree_fp, schema='newick')
@@ -71,6 +82,8 @@ def reestimate_backbone(options):
     s = [fasttree_exec, '-nosupport', '-nome', '-noml', '-log', fasttree_log, '-intree', orig_branch_resolved_fp]
     if not options.protein_seqs:
         s.append('-nt')
+
+    # match the rooting of the fasttree output to the original input tree.
     with open(options.ref_fp, 'r') as rf:
         with Popen(s, stdout=PIPE, stdin=rf, stderr=sys.stderr) as p:
             # options.tree_fp = bb_fp.name

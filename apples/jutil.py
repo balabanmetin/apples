@@ -1,4 +1,13 @@
 def join_jplace(lst):
+    """
+    Join the list of jplace files into a single jplace file.
+
+    Parameters:
+    lst (list): A list of jplace files.
+
+    Returns:
+    dict: The joined jplace dictionary.
+    """
     result = lst[0]
     if len(lst) == 1:
         if result['placements'][0]['p'][0][0] == -1:
@@ -11,7 +20,19 @@ def join_jplace(lst):
 
 
 def extended_newick(tree):
-    """Newick printing algorithm is based on treeswift"""
+    """
+    Generate an extended Newick string representation of a tree using treeswift.
+
+    This function prepares a suffix as an empty string and uses the recursive helper function _nodeprint
+    to create a string representation of the tree with edge indices. It returns the Newick string
+    along with additional formatting to denote if the tree is rooted.
+
+    Args:
+        tree: A Tree object to be converted into an extended Newick format.
+
+    Returns:
+        str: An extended Newick string representation of the tree.
+"""
 
     # if tree.root.edge_length is None:
     #     suffix = ''
@@ -30,6 +51,20 @@ def extended_newick(tree):
 
 
 def _nodeprint(root):
+    """
+    Generate a string representation of a tree from its root node.
+    This code defines a function _nodeprint that takes a root node and
+    returns a dictionary node_to_str containing string representations of
+    nodes in a tree. It uses postorder traversal to process each node and its
+    children, and constructs a string representation for each node based on
+    its label, edge length, and **edge index**.
+
+    Args:
+        root: The root node of the tree.
+
+    Returns:
+        A string representation of the tree.
+    """
     node_to_str = dict()
 
     for node in root.traverse_postorder():

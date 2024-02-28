@@ -7,6 +7,16 @@ import logging
 
 
 def prepareTree(options):
+    """
+    Prepares a tree based on the given options.
+
+    Args:
+        options: The options for preparing the tree.
+
+    Returns:
+        tuple: A tuple containing the prepared tree, a dictionary mapping leaf labels to pendant edge index,
+               and the extended Newick string.
+    """
     if options.reestimate_backbone:  # reestimate backbone branch lengths
         reestimate_backbone(options)
 

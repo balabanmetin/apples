@@ -10,6 +10,16 @@ from apples import util
 
 class OLS(Algorithm):
     def all_S_values(self):
+        """
+        Calculate and assign the S, Sd, Sd2, SDd, SD, and SD2 values
+        (left-hand side dynamic programming values) for each node in the subtree.
+        It is computing certain summary statistics (S values) for each node in a tree,
+        which will be used to compute the least squares error for the edge.
+        These S values are calculated based on the node's siblings and parent,
+        and they are used in dynamic programming on the tree.
+        The calculations involve updating the S values for each node based on the node's siblings and parent,
+        and the code id traversing the tree in a specific order to perform these calculations
+        """
         subtree = self.subtree
         obs_dist = subtree.obs_dist
         for node in filter(lambda x: x.valid, subtree.traverse_postorder()):
@@ -34,6 +44,15 @@ class OLS(Algorithm):
                     node.SD += child.SD
 
     def all_R_values(self):
+        """
+        Calculate the R values (right-hand side dynamic programming values) for each node in the subtree.
+        It is computing certain summary statistics (R values) for each node in a tree,
+        which will be used to compute the least squares error for the edge.
+        These R values are calculated based on the node's siblings and parent,
+        and they are used in dynamic programming on the tree.
+        The calculations involve updating the R values for each node based on the node's siblings and parent,
+        and the code id traversing the tree in a specific order to perform these calculations
+        """
         subtree = self.subtree
         for node in filter(lambda x: x.valid, subtree.traverse_preorder()):
             node.RDd, node.RD2, node.RD, node.R, node.Rd, node.Rd2 = 6 * [0]
@@ -62,6 +81,12 @@ class OLS(Algorithm):
 
     # computes all alternative OLS placements
     def placement_per_edge(self, negative_branch):
+        """
+        Calculate placement per edge for the given the flag for the negative branches allowed or not.
+        It calculates placement per edge for a given subtree by solving a 2x2 linear system for each node (edge)
+        in the subtree. It calculates two values (implicitly), pendant and distal edge lengths for each edge.
+        The values are stored in the node attributes.
+        """
         for node in filter(lambda x: x.valid, self.subtree.traverse_postorder()):
             a_11 = node.R + node.S
             a_12 = node.R - node.S
@@ -74,6 +99,25 @@ class OLS(Algorithm):
     # computes OLS error (Q value) for a given edge
     @staticmethod
     def error_per_edge(node):
+        """
+        Calculate the error per edge based on the given node attributes and return the result.
+        The error is defined as the sum of the following terms:
+        A = RD2 + SD2
+        B = 2 * (x_1 + x_2) * Rd + 2 * (edge_length + x_1 - x_2) * Sd
+        C = (x_1 + x_2)^2 * R + (edge_length + x_1 - x_2)^2 * S
+        D = -2 * (x_1 + x_2) * RD - 2 * (edge_length + x_1 - x_2) * SD
+        E = -2 * RDd - 2 * SDd
+        F = Rd2 + Sd2
+
+        This is derived by writing the least squares objective explicitly.
+
+        Parameters:
+        - node: the node object containing attributes such as valid, RD2, SD2, x_1, x_2, Rd, Sd,
+        edge_length, R, S, RD, SD, RDd, SDd, Rd2, and Sd2
+
+        Returns:
+        - The calculated error per edge
+        """
         assert node.valid
         A = node.RD2 + node.SD2
         B = 2 * (node.x_1 + node.x_2) * node.Rd + 2 * (node.edge_length + node.x_1 - node.x_2) * node.Sd

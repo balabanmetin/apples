@@ -6,6 +6,9 @@ np.seterr(all='raise')
 # Taken from FastTree2 code
 #  A   R   N   D   C   Q   E   G   H   I   L   K   M   F   P   S   T   W   Y   V   b   z   x
 
+# BLOSUM45 is a substitution matrix used for sequence alignment in bioinformatics.
+# This matrix represents the log-odds scores for amino acid substitutions,
+# scaled and based on the BLOSUM45 database of aligned protein sequences.
 BLOSUM45 = np.array(
     [
         0,
@@ -411,7 +414,7 @@ BLOSUM45 = np.array(
     ]
 )
 
-
+# ascii to integer conversion table
 NA = 0
 a2i = np.array(
     [
@@ -676,6 +679,22 @@ a2i = np.array(
 
 
 def scoredist(a2, b2, overlap_frac):
+    """
+    The scoredist function calculates a distance score for protein sequences.
+    It is based on the "Scoredist: A simple and robust protein sequence
+    distance estimator" paper from Sonnhammer & Hollich (2005).
+    The function evaluates input aminoacid character arrays a2 and b2,
+    returning -1.0 for missing data if conditions aren't met, or calculates
+    a score otherwise.
+
+    Parameters:
+    - a2 (np.ndarray): First input array.
+    - b2 (np.ndarray): Second input array.
+    - overlap_frac (float): Required overlap fraction for valid comparison.
+
+    Returns:
+    - float: Calculated Scoredist distance, or -1.0 for missing data.
+    """
     nondash = np.logical_and(a2 != b'-', b2 != b'-')
     valid = np.count_nonzero(nondash)
     if not valid or valid / len(nondash) < overlap_frac:
@@ -697,6 +716,20 @@ def scoredist(a2, b2, overlap_frac):
 
 
 def jc69(a2, b2, overlap_frac):
+    """
+    This code defines a function jc69 that takes three input parameters a2, b2, and overlap_frac.
+    It calculates a Jukes-Cantor 69 (JC69) distance based on the input sequences a2 and b2.
+    If the sequences do not have enough valid data or if the calculated distance is not within certain bounds,
+    the function returns specific values to indicate missing data or a distance of 0.
+
+    Parameters:
+    a2 (array-like): First sequence.
+    b2 (array-like): Second sequence.
+    overlap_frac (float): Minimum overlap fraction required for valid comparison.
+
+    Returns:
+    float: JC69 distance between the two sequences.
+    """
     nondash = np.logical_and(a2 != b'-', b2 != b'-')
     valid = np.count_nonzero(nondash)
     if not valid or valid / len(nondash) < overlap_frac:

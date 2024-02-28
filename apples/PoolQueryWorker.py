@@ -16,6 +16,9 @@ class PoolQueryWorker:
 
     @classmethod
     def set_class_attributes(cls, reference, options, name_to_node_map):
+        """
+        Set class attributes for the given reference, options, and name-to-node map.
+        """
         cls.reference = reference
         cls.options = options
         cls.name_to_node_map = name_to_node_map
@@ -23,6 +26,13 @@ class PoolQueryWorker:
 
     @classmethod
     def runquery(cls, query_name, query_seq, obs_dist):
+        """
+        A class method that runs a query and returns a data structure with placement information.
+        It takes in the query name, query sequence, and observed distances as parameters.
+        The return type is a dictionary containing placement information.
+        It computes placements for a query based on observed distances, and it handles various cases
+        such as insufficient distances and potential misplacements. It also logs computation and completion times.
+        """
         jplace = dict()
         jplace['placements'] = [{'p': [[0, 0, 1, 0, 0]], 'n': [query_name]}]
 
@@ -32,6 +42,11 @@ class PoolQueryWorker:
         else:
 
             def valid_dists(obs_dist, name_to_node_map):
+                """
+                This function takes in two parameters: obs_dist, a dictionary, and name_to_node_map, a map.
+                It iterates through the items in observed distances, sorted by their distance,
+                and yields the key-value pairs that do not exceed the filter threshold.
+                """
                 tx = 0
                 for k, v in sorted(obs_dist.items(), key=lambda kv: kv[1]):
                     if v < 0 or k not in name_to_node_map:
@@ -60,6 +75,11 @@ class PoolQueryWorker:
                 return jplace
 
         def not_sufficient_distances():
+            """
+            A function that handles cases where there are not sufficient distances for placing a taxon.
+            It writes an error message to stderr and logs the computation and completion times.
+            It then returns the updated jplace data structure.
+            """
             sys.stderr.write(
                 'Taxon {} cannot be placed. At least three non-infinity distances '
                 'should be observed to place a taxon. '
@@ -77,8 +97,10 @@ class PoolQueryWorker:
         if len(obs_dist) <= 2:
             return not_sufficient_distances()
 
+        # extract the subtree
         subtree = Subtree(obs_dist, cls.name_to_node_map)
 
+        # select the least squares weighting scheme
         if cls.options.method_name == 'BE':
             alg = BE(subtree)
         elif cls.options.method_name == 'FM':
@@ -87,9 +109,13 @@ class PoolQueryWorker:
             alg = BME(subtree)
         else:
             alg = OLS(subtree)
+
+        # call dynamic programming
         alg.dp_frag()
 
+        # call best placement for all subtree edges
         alg.placement_per_edge(cls.options.negative_branch)
+        # find the edge with the least squares error (weighed)
         presult, potential_misplacement_flag = alg.placement(cls.options.criterion_name)
         jplace['placements'][0]['p'] = [presult]
         if potential_misplacement_flag == 1:
@@ -103,6 +129,7 @@ class PoolQueryWorker:
                 'with a non-zero least squares error. This is a potential misplacement.%s' % (query_name, ignoredprompt)
             )
 
+        # reset the subtree edges valid flags
         subtree.unroll_changes()
 
         end_dp = time.time() - start_dp

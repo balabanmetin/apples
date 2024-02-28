@@ -1,7 +1,10 @@
 import numpy as np
 
 
-def readfq(fp):   # this is a generator function
+def readfq(fp):
+    """
+    A generator function that reads a file-like object line by line and yields FASTA and FASTQ records.
+    """
     last = None   # this is a buffer keeping the last unprocessed line
     while True:   # mimic closure; is it a bad idea?
         if not last:   # the first record or a record following a fastq
@@ -37,6 +40,17 @@ def readfq(fp):   # this is a generator function
 
 
 def fasta2dic(ref_fp, prot_flag, mask_flag):
+    """
+    Convert a FASTA file to a dictionary.
+
+    Args:
+        ref_fp (str): The file path of the FASTA file.
+        prot_flag (bool): A flag indicating whether the sequences are protein sequences.
+        mask_flag (bool): A flag indicating whether to mask the lowercase characters in the sequences.
+
+    Returns:
+        dict: A dictionary containing the name of the sequence as key and the sequence data as value.
+    """
     refs = {}
     with open(ref_fp) as f:
         mask_translation = str.maketrans('abcdefghijklmnopqrstuvwxyz', '-' * 26)
@@ -52,6 +66,7 @@ def fasta2dic(ref_fp, prot_flag, mask_flag):
             else:
                 return s.upper()
 
+        # The resulting sequence is encoded as a numpy array of type 'S1'
         for name, seq, qual in readfq(f):
             refs[name] = np.frombuffer(makeupper(seq).translate(invalid_translation).encode(), dtype='S1')
     return refs
