@@ -3,7 +3,6 @@ from apples import util
 
 
 class FM(Algorithm):
-
     def all_S_values(self):
         subtree = self.subtree
         obs_dist = subtree.obs_dist
@@ -22,7 +21,11 @@ class FM(Algorithm):
                     node.S += child.S
                     node.Sd_D += child.edge_length * child.S1_D + child.Sd_D
                     node.Sd_D2 += child.edge_length * child.S1_D2 + child.Sd_D2
-                    node.Sd2_D2 += child.S1_D2 * child.edge_length * child.edge_length + child.Sd2_D2 + 2 * child.edge_length * child.Sd_D2
+                    node.Sd2_D2 += (
+                        child.S1_D2 * child.edge_length * child.edge_length
+                        + child.Sd2_D2
+                        + 2 * child.edge_length * child.Sd_D2
+                    )
                     node.S1_D += child.S1_D
                     node.S1_D2 += child.S1_D2
 
@@ -34,17 +37,24 @@ class FM(Algorithm):
                 node.R += sibling.S
                 node.Rd_D += sibling.edge_length * sibling.S1_D + sibling.Sd_D
                 node.Rd_D2 += sibling.edge_length * sibling.S1_D2 + sibling.Sd_D2
-                node.Rd2_D2 += sibling.S1_D2 * sibling.edge_length * sibling.edge_length + sibling.Sd2_D2 + 2 * sibling.edge_length * sibling.Sd_D2
+                node.Rd2_D2 += (
+                    sibling.S1_D2 * sibling.edge_length * sibling.edge_length
+                    + sibling.Sd2_D2
+                    + 2 * sibling.edge_length * sibling.Sd_D2
+                )
                 node.R1_D += sibling.S1_D
                 node.R1_D2 += sibling.S1_D2
             if node.parent != subtree.root and node.parent.valid:
                 node.R += node.parent.R
                 node.Rd_D += node.parent.edge_length * node.parent.R1_D + node.parent.Rd_D
                 node.Rd_D2 += node.parent.edge_length * node.parent.R1_D2 + node.parent.Rd_D2
-                node.Rd2_D2 += node.parent.R1_D2 * node.parent.edge_length * node.parent.edge_length + node.parent.Rd2_D2 + 2 * node.parent.edge_length * node.parent.Rd_D2
+                node.Rd2_D2 += (
+                    node.parent.R1_D2 * node.parent.edge_length * node.parent.edge_length
+                    + node.parent.Rd2_D2
+                    + 2 * node.parent.edge_length * node.parent.Rd_D2
+                )
                 node.R1_D += node.parent.R1_D
                 node.R1_D2 += node.parent.R1_D2
-
 
     # computes all alternative Fitch-Margoliash placements
     def placement_per_edge(self, negative_branch):
@@ -62,12 +72,9 @@ class FM(Algorithm):
     def error_per_edge(node):
         assert node.valid
         A = node.R + node.S
-        B = 2 * (node.x_1 + node.x_2) * node.Rd_D2 + \
-            2 * (node.edge_length + node.x_1 - node.x_2) * node.Sd_D2
-        C = (node.x_1 + node.x_2) ** 2 * node.R1_D2 + \
-            (node.edge_length + node.x_1 - node.x_2) ** 2 * node.S1_D2
-        D = -2 * (node.x_1 + node.x_2) * node.R1_D - \
-            2 * (node.edge_length + node.x_1 - node.x_2) * node.S1_D
+        B = 2 * (node.x_1 + node.x_2) * node.Rd_D2 + 2 * (node.edge_length + node.x_1 - node.x_2) * node.Sd_D2
+        C = (node.x_1 + node.x_2) ** 2 * node.R1_D2 + (node.edge_length + node.x_1 - node.x_2) ** 2 * node.S1_D2
+        D = -2 * (node.x_1 + node.x_2) * node.R1_D - 2 * (node.edge_length + node.x_1 - node.x_2) * node.S1_D
         E = -2 * node.Rd_D - 2 * node.Sd_D
         F = node.Rd2_D2 + node.Sd2_D2
         return A + B + C + D + E + F

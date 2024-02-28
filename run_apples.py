@@ -41,6 +41,11 @@ if __name__ == "__main__":
         reference = None
 
         def read_dismat(f):
+            """
+            Read a distance matrix from a file and yield each query name along with its observed distances.
+            :param f: A file object containing the distance matrix
+            :return: A generator yielding tuples of query names, None, and observed distances
+            """
             tags = list(re.split("\s+", f.readline().rstrip()))[1:]
             for line in f.readlines():
                 dists = list(re.split("\s+", line.strip()))

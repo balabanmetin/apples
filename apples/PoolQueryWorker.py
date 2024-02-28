@@ -14,7 +14,6 @@ class PoolQueryWorker:
     name_to_node_map = None
     treecore = None
 
-
     @classmethod
     def set_class_attributes(cls, reference, options, name_to_node_map):
         cls.reference = reference
@@ -25,12 +24,13 @@ class PoolQueryWorker:
     @classmethod
     def runquery(cls, query_name, query_seq, obs_dist):
         jplace = dict()
-        jplace["placements"] = [{"p": [[0, 0, 1, 0, 0]], "n": [query_name]}]
+        jplace['placements'] = [{'p': [[0, 0, 1, 0, 0]], 'n': [query_name]}]
 
         start_dist = time.time()
         if not obs_dist:
             obs_dist = cls.reference.get_obs_dist(query_seq, query_name, cls.options.minimum_alignment_overlap)
         else:
+
             def valid_dists(obs_dist, name_to_node_map):
                 tx = 0
                 for k, v in sorted(obs_dist.items(), key=lambda kv: kv[1]):
@@ -48,27 +48,30 @@ class PoolQueryWorker:
         if query_name in cls.name_to_node_map:
             if query_name in obs_dist:
                 del obs_dist[query_name]
-            logging.warning("The query named %s exists in the backbone. Changing its name to %s-query."
-                            % (query_name, query_name))
-            query_name = query_name + "-query"
-            jplace["placements"][0]["n"] = [query_name]
+            logging.warning(
+                'The query named %s exists in the backbone. Changing its name to %s-query.' % (query_name, query_name)
+            )
+            query_name = query_name + '-query'
+            jplace['placements'][0]['n'] = [query_name]
 
         for k, v in obs_dist.items():
             if v == 0:
-                jplace["placements"][0]["p"][0][0] = cls.name_to_node_map[k].edge_index
+                jplace['placements'][0]['p'][0][0] = cls.name_to_node_map[k].edge_index
                 return jplace
 
         def not_sufficient_distances():
-            sys.stderr.write('Taxon {} cannot be placed. At least three non-infinity distances '
-                             'should be observed to place a taxon. '
-                             'Consequently, this taxon is ignored (no output).\n'.format(query_name))
-            jplace["placements"][0]["p"][0][0] = -1
+            sys.stderr.write(
+                'Taxon {} cannot be placed. At least three non-infinity distances '
+                'should be observed to place a taxon. '
+                'Consequently, this taxon is ignored (no output).\n'.format(query_name)
+            )
+            jplace['placements'][0]['p'][0][0] = -1
             end_dp = time.time() - start_dp
             logging.info(
-                "[%s] Distances are computed for query %s in %.3f seconds.\n"
-                "[%s] Dynamic programming is completed for query %s in %.3f seconds." %
-                (time.strftime("%H:%M:%S"), query_name, end_dist,
-                 time.strftime("%H:%M:%S"), query_name, end_dp))
+                '[%s] Distances are computed for query %s in %.3f seconds.\n'
+                '[%s] Dynamic programming is completed for query %s in %.3f seconds.'
+                % (time.strftime('%H:%M:%S'), query_name, end_dist, time.strftime('%H:%M:%S'), query_name, end_dp)
+            )
             return jplace
 
         if len(obs_dist) <= 2:
@@ -76,11 +79,11 @@ class PoolQueryWorker:
 
         subtree = Subtree(obs_dist, cls.name_to_node_map)
 
-        if cls.options.method_name == "BE":
+        if cls.options.method_name == 'BE':
             alg = BE(subtree)
-        elif cls.options.method_name == "FM":
+        elif cls.options.method_name == 'FM':
             alg = FM(subtree)
-        elif cls.options.method_name == "BME":
+        elif cls.options.method_name == 'BME':
             alg = BME(subtree)
         else:
             alg = OLS(subtree)
@@ -88,23 +91,24 @@ class PoolQueryWorker:
 
         alg.placement_per_edge(cls.options.negative_branch)
         presult, potential_misplacement_flag = alg.placement(cls.options.criterion_name)
-        jplace["placements"][0]["p"] = [presult]
+        jplace['placements'][0]['p'] = [presult]
         if potential_misplacement_flag == 1:
             if cls.options.exclude_intplace:
-                jplace["placements"][0]["p"][0][0] = -1
-                ignoredprompt = " Consequently, this sequence is ignored (no output)."
+                jplace['placements'][0]['p'][0][0] = -1
+                ignoredprompt = ' Consequently, this sequence is ignored (no output).'
             else:
-                ignoredprompt = ""
+                ignoredprompt = ''
             logging.warning(
-                "Best placement for query sequence %s has zero pendant edge length and placed at an internal node "
-                "with a non-zero least squares error. This is a potential misplacement.%s" % (query_name, ignoredprompt))
+                'Best placement for query sequence %s has zero pendant edge length and placed at an internal node '
+                'with a non-zero least squares error. This is a potential misplacement.%s' % (query_name, ignoredprompt)
+            )
 
         subtree.unroll_changes()
 
         end_dp = time.time() - start_dp
         logging.info(
-            "[%s] Distances are computed for query %s in %.3f seconds.\n"
-            "[%s] Dynamic programming is completed for query %s in %.3f seconds." %
-            (time.strftime("%H:%M:%S"), query_name, end_dist,
-             time.strftime("%H:%M:%S"), query_name, end_dp))
+            '[%s] Distances are computed for query %s in %.3f seconds.\n'
+            '[%s] Dynamic programming is completed for query %s in %.3f seconds.'
+            % (time.strftime('%H:%M:%S'), query_name, end_dist, time.strftime('%H:%M:%S'), query_name, end_dp)
+        )
         return jplace

@@ -4,7 +4,6 @@ from apples.PrioritySet import PrioritySet
 
 
 class Subtree:
-
     def __init__(self, obs_dist, name_to_node_map):
         self.root = self.validate_edges(obs_dist, name_to_node_map, True)
         self.obs_dist = obs_dist
@@ -14,8 +13,9 @@ class Subtree:
         ps = PrioritySet()
         for k, v in obs_dist.items():
             if k in name_to_node_map:
-                ps.add(name_to_node_map[k],
-                       -name_to_node_map[k].level)  # adding minus to give priority to the largest level
+                ps.add(
+                    name_to_node_map[k], -name_to_node_map[k].level
+                )  # adding minus to give priority to the largest level
 
         count = 0
         while len(ps) > 1:

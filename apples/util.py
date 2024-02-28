@@ -1,5 +1,3 @@
-
-
 # solves two by two Ax=c linear system and returns the optimal values defined by
 # constraints. This is thanks to the convexity of (weighted) least squared error
 from collections import deque
@@ -8,9 +6,9 @@ from collections import deque
 def solve2_2(node, a_11, a_12, a_21, a_22, c_1, c_2, negative_branch):
     edge_length = node.edge_length
     det = 1 / (a_11 * a_22 - a_12 * a_21)
-    assert det is not 0
+    assert det != 0
     x_1_neg = (a_22 * c_1 - a_12 * c_2) * det
-    x_2_neg = (- a_21 * c_1 + a_11 * c_2) * det
+    x_2_neg = (-a_21 * c_1 + a_11 * c_2) * det
     x_1 = x_1_neg
     x_2 = x_2_neg
     if not negative_branch:
@@ -39,7 +37,7 @@ def solve2_2(node, a_11, a_12, a_21, a_22, c_1, c_2, negative_branch):
 
 
 def index_edges(tree):
-    counter=0
+    counter = 0
     for node in tree.traverse_postorder():
         node.edge_index = counter
         counter += 1

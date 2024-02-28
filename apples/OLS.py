@@ -7,8 +7,8 @@ from apples import util
 # FM: Fitch-Margoliash --Least Squares with \delta^2 scaling
 # BE: Beyer --Least Squares with \delta scaling
 
-class OLS(Algorithm):
 
+class OLS(Algorithm):
     def all_S_values(self):
         subtree = self.subtree
         obs_dist = subtree.obs_dist
@@ -26,8 +26,9 @@ class OLS(Algorithm):
                 for child in filter(lambda x: x.valid, node.children):
                     node.S += child.S
                     node.Sd += child.S * child.edge_length + child.Sd
-                    node.Sd2 += child.S * child.edge_length * child.edge_length + child.Sd2 +\
-                                2 * child.edge_length * child.Sd
+                    node.Sd2 += (
+                        child.S * child.edge_length * child.edge_length + child.Sd2 + 2 * child.edge_length * child.Sd
+                    )
                     node.SDd += child.edge_length * child.SD + child.SDd
                     node.SD2 += child.SD2
                     node.SD += child.SD
@@ -39,16 +40,22 @@ class OLS(Algorithm):
             for sibling in filter(lambda x: x.valid and x != node, node.parent.children):
                 node.R += sibling.S
                 node.Rd += sibling.S * sibling.edge_length + sibling.Sd
-                node.Rd2 += sibling.S * sibling.edge_length * sibling.edge_length + sibling.Sd2 + \
-                            2 * sibling.edge_length * sibling.Sd
+                node.Rd2 += (
+                    sibling.S * sibling.edge_length * sibling.edge_length
+                    + sibling.Sd2
+                    + 2 * sibling.edge_length * sibling.Sd
+                )
                 node.RDd += sibling.SD * sibling.edge_length + sibling.SDd
                 node.RD2 += sibling.SD2
                 node.RD += sibling.SD
             if node.parent != subtree.root and node.parent.valid:
                 node.R += node.parent.R
                 node.Rd += node.parent.R * node.parent.edge_length + node.parent.Rd
-                node.Rd2 += node.parent.R * node.parent.edge_length * node.parent.edge_length + node.parent.Rd2 + \
-                            2 * node.parent.edge_length * node.parent.Rd
+                node.Rd2 += (
+                    node.parent.R * node.parent.edge_length * node.parent.edge_length
+                    + node.parent.Rd2
+                    + 2 * node.parent.edge_length * node.parent.Rd
+                )
                 node.RDd += node.parent.RD * node.parent.edge_length + node.parent.RDd
                 node.RD2 += node.parent.RD2
                 node.RD += node.parent.RD
@@ -69,12 +76,9 @@ class OLS(Algorithm):
     def error_per_edge(node):
         assert node.valid
         A = node.RD2 + node.SD2
-        B = 2 * (node.x_1 + node.x_2) * node.Rd + \
-            2 * (node.edge_length + node.x_1 - node.x_2) * node.Sd
-        C = (node.x_1 + node.x_2) ** 2 * node.R + \
-            (node.edge_length + node.x_1 - node.x_2) ** 2 * node.S
-        D = -2 * (node.x_1 + node.x_2) * node.RD - \
-            2 * (node.edge_length + node.x_1 - node.x_2) * node.SD
+        B = 2 * (node.x_1 + node.x_2) * node.Rd + 2 * (node.edge_length + node.x_1 - node.x_2) * node.Sd
+        C = (node.x_1 + node.x_2) ** 2 * node.R + (node.edge_length + node.x_1 - node.x_2) ** 2 * node.S
+        D = -2 * (node.x_1 + node.x_2) * node.RD - 2 * (node.edge_length + node.x_1 - node.x_2) * node.SD
         E = -2 * node.RDd - 2 * node.SDd
         F = node.Rd2 + node.Sd2
         return A + B + C + D + E + F

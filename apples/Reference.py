@@ -4,7 +4,7 @@ import tempfile
 from abc import ABC, abstractmethod
 
 from apples.PoolRepresentativeWorker import PoolRepresentativeWorker
-from apples.distance import *
+from apples.distance import scoredist, jc69
 from apples.fasta2dic import fasta2dic
 import heapq
 import time
@@ -48,18 +48,20 @@ class ReducedReference(Reference):
         start = time.time()
         tc_output_file = tempfile.NamedTemporaryFile(delete=True, mode='w+t').name
         nldef = tempfile.NamedTemporaryFile(delete=True, mode='w+t')
-        s = ["TreeCluster.py", "-t", str(self.threshold * 1.2), "-i", tree_file, "-m", "max", "-o", tc_output_file]
+        s = ['TreeCluster.py', '-t', str(self.threshold * 1.2), '-i', tree_file, '-m', 'max', '-o', tc_output_file]
         subprocess.call(s, stdout=nldef, stderr=nldef)
         logging.info(
-            "[%s] TreeCluster is completed in %.3f seconds." % (time.strftime("%H:%M:%S"), (time.time() - start)))
+            '[%s] TreeCluster is completed in %.3f seconds.' % (time.strftime('%H:%M:%S'), (time.time() - start))
+        )
 
         start = time.time()
-        with open(tc_output_file, "r") as tc_output:
+        with open(tc_output_file, 'r') as tc_output:
             tc_output.readline()
             lines = map(lambda x: x.strip().split('\t'), tc_output.readlines())
             lines_sorted = sorted(lines, key=lambda x: x[1])
-            clusters = [(key, [i[0] for i in list(group)]) for key, group in
-                        itertools.groupby(lines_sorted, lambda x: x[1])]
+            clusters = [
+                (key, [i[0] for i in list(group)]) for key, group in itertools.groupby(lines_sorted, lambda x: x[1])
+            ]
             partition_worker = PoolRepresentativeWorker()
             partition_worker.set_class_attributes(self.refs, self.prot_flag)
             pool = mp.Pool(num_thread)
@@ -69,8 +71,9 @@ class ReducedReference(Reference):
             self.representatives = [item for sublist in results for item in sublist]
 
         logging.info(
-            "[%s] Representative sequences are computed in %.3f seconds." %
-            (time.strftime("%H:%M:%S"), (time.time() - start)))
+            '[%s] Representative sequences are computed in %.3f seconds.'
+            % (time.strftime('%H:%M:%S'), (time.time() - start))
+        )
 
     def set_baseobs(self, baseobs):
         self.baseobs = baseobs

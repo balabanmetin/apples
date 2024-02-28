@@ -12,8 +12,7 @@ def prepareTree(options):
 
     start = time.time()
     first_read_tree = ts.read_tree(options.tree_fp, schema='newick')
-    logging.info(
-        "[%s] Tree is parsed in %.3f seconds." % (time.strftime("%H:%M:%S"), (time.time() - start)))
+    logging.info('[%s] Tree is parsed in %.3f seconds.' % (time.strftime('%H:%M:%S'), (time.time() - start)))
     start = time.time()
     util.index_edges(first_read_tree)
     util.set_levels(first_read_tree)
@@ -26,5 +25,6 @@ def prepareTree(options):
 
     extended_newick_string = extended_newick(first_read_tree)
     logging.info(
-        "[%s] Tree preprocessing is completed in %.3f seconds." % (time.strftime("%H:%M:%S"), (time.time() - start)))
+        '[%s] Tree preprocessing is completed in %.3f seconds.' % (time.strftime('%H:%M:%S'), (time.time() - start))
+    )
     return first_read_tree, name_to_node_map, extended_newick_string

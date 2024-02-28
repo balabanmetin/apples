@@ -7,7 +7,7 @@ class PrioritySet(object):
         self.set = set()
 
     def add(self, d, pri):
-        if not d in self.set:
+        if d not in self.set:
             heapq.heappush(self.heap, (pri, d))
             self.set.add(d)
 

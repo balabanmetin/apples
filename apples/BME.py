@@ -3,7 +3,6 @@ from apples import util
 
 
 class BME(Algorithm):
-
     def all_S_values(self):
         subtree = self.subtree
         obs_dist = subtree.obs_dist
@@ -22,7 +21,10 @@ class BME(Algorithm):
                     node.BS += bmecoef * child.BS
                     node.BSd += bmecoef * (child.BS * child.edge_length + child.BSd)
                     node.BSd2 += bmecoef * (
-                            child.BS * child.edge_length * child.edge_length + child.BSd2 + 2 * child.edge_length * child.BSd)
+                        child.BS * child.edge_length * child.edge_length
+                        + child.BSd2
+                        + 2 * child.edge_length * child.BSd
+                    )
                     node.BSDd += bmecoef * (child.edge_length * child.BSD + child.BSDd)
                     node.BSD2 += bmecoef * child.BSD2
                     node.BSD += bmecoef * child.BSD
@@ -36,8 +38,11 @@ class BME(Algorithm):
             for sibling in filter(lambda x: x.valid and x != node, node.parent.children):
                 node.BR += bmecoef * sibling.BS
                 node.BRd += bmecoef * (sibling.BS * sibling.edge_length + sibling.BSd)
-                node.BRd2 += bmecoef * (sibling.BS * sibling.edge_length * sibling.edge_length + sibling.BSd2 +
-                                        2 * sibling.edge_length * sibling.BSd)
+                node.BRd2 += bmecoef * (
+                    sibling.BS * sibling.edge_length * sibling.edge_length
+                    + sibling.BSd2
+                    + 2 * sibling.edge_length * sibling.BSd
+                )
                 node.BRDd += bmecoef * (sibling.BSD * sibling.edge_length + sibling.BSDd)
                 node.BRD2 += bmecoef * sibling.BSD2
                 node.BRD += bmecoef * sibling.BSD
@@ -46,8 +51,10 @@ class BME(Algorithm):
                 node.BR += bmecoef * node.parent.BR
                 node.BRd += bmecoef * (node.parent.BR * node.parent.edge_length + node.parent.BRd)
                 node.BRd2 += bmecoef * (
-                            node.parent.BR * node.parent.edge_length * node.parent.edge_length + node.parent.BRd2 +
-                            2 * node.parent.edge_length * node.parent.BRd)
+                    node.parent.BR * node.parent.edge_length * node.parent.edge_length
+                    + node.parent.BRd2
+                    + 2 * node.parent.edge_length * node.parent.BRd
+                )
                 node.BRDd += bmecoef * (node.parent.BRD * node.parent.edge_length + node.parent.BRDd)
                 node.BRD2 += bmecoef * node.parent.BRD2
                 node.BRD += bmecoef * node.parent.BRD
@@ -68,15 +75,9 @@ class BME(Algorithm):
     def error_per_edge(node):
         assert node.valid
         A = node.BRD2 + node.BSD2
-        B = 2 * (node.x_1 + node.x_2) * node.BRd + \
-            2 * (node.edge_length + node.x_1 - node.x_2) * node.BSd
-        C = (node.x_1 + node.x_2) ** 2 * node.BR + \
-            (node.edge_length + node.x_1 - node.x_2) ** 2 * node.BS
-        D = -2 * (node.x_1 + node.x_2) * node.BRD - \
-            2 * (node.edge_length + node.x_1 - node.x_2) * node.BSD
+        B = 2 * (node.x_1 + node.x_2) * node.BRd + 2 * (node.edge_length + node.x_1 - node.x_2) * node.BSd
+        C = (node.x_1 + node.x_2) ** 2 * node.BR + (node.edge_length + node.x_1 - node.x_2) ** 2 * node.BS
+        D = -2 * (node.x_1 + node.x_2) * node.BRD - 2 * (node.edge_length + node.x_1 - node.x_2) * node.BSD
         E = -2 * node.BRDd - 2 * node.BSDd
         F = node.BRd2 + node.BSd2
         return A + B + C + D + E + F
-
-
-

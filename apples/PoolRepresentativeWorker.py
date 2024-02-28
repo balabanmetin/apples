@@ -14,13 +14,35 @@ class PoolRepresentativeWorker:
     def _find_representative(group, refs, prot_flag):
 
         if prot_flag:
-            alphabet = np.array(['A', 'C', 'D', 'E', 'F',
-                                 'G', 'H', 'I', 'K', 'L',
-                                 'M', 'N', 'P', 'Q', 'R',
-                                 'S', 'T', 'V', 'W', 'Y', '-'], dtype="S1")
+            alphabet = np.array(
+                [
+                    'A',
+                    'C',
+                    'D',
+                    'E',
+                    'F',
+                    'G',
+                    'H',
+                    'I',
+                    'K',
+                    'L',
+                    'M',
+                    'N',
+                    'P',
+                    'Q',
+                    'R',
+                    'S',
+                    'T',
+                    'V',
+                    'W',
+                    'Y',
+                    '-',
+                ],
+                dtype='S1',
+            )
 
         else:
-            alphabet = np.array([b'A', b'C', b'G', b'T', b'-'], dtype="S1")
+            alphabet = np.array([b'A', b'C', b'G', b'T', b'-'], dtype='S1')
 
         lookup = {n: i for i, n in enumerate(alphabet)}
 
@@ -39,7 +61,7 @@ class PoolRepresentativeWorker:
     @classmethod
     def worker(cls, cluster):
         key, group = cluster
-        if key == "-1":
+        if key == '-1':
             return [(cls.refs[thing], [thing]) for thing in group]
         else:
             return [(cls._find_representative(group, cls.refs, cls.prot_flag), group)]
